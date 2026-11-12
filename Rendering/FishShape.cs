@@ -17,7 +17,63 @@ internal abstract class FishShape
     /// <summary>水下光晕的纵向半径。</summary>
     public virtual double HaloRadiusY => 38.0;
 
-    public abstract void Draw(DrawingContext dc, FishPalette palette, double phase, double speed);
+    /// <summary>
+    /// true 表示造型始终保持直立，不随游动方向整体旋转，
+    /// 左右朝向改由水平镜像表达。
+    /// </summary>
+    public virtual bool Upright => false;
+
+    /// <summary>扫过体侧的柔光带，所有品种共用，随相位横向移动。</summary>
+    protected static readonly Brush BodySheenBrush = CreateBodySheenBrush();
+
+    /// <summary>扫光占整个周期的比例，剩余部分留作暗场间隔。</summary>
+    private const double SheenDuty = 0.75;
+
+    public abstract void Draw(DrawingContext dc, FishPalette palette, double phase, double speed, double sheenPhase);
+
+    /// <summary>
+    /// 在已经裁到身体轮廓的绘制上下文里，画一道从头部向尾部扫过的折射光带。
+    /// 局部坐标头朝 +X，所以扫光从右往左走。各品种只需给出扫过范围和倾斜角。
+    /// <paramref name="sheenPhase"/> 在 0-1 间循环，后四分之一为暗场，让两次扫光之间留出停顿。
+    /// </summary>
+    protected static void DrawBodySheen(
+        DrawingContext dc,
+        double sheenPhase,
+        double left,
+        double span,
+        double top,
+        double height,
+        double angle)
+    {
+        const double width = 15.0;
+        double cycle = sheenPhase % 1.0;
+        if (cycle >= SheenDuty)
+        {
+            return;
+        }
+
+        double t = cycle / SheenDuty;
+        double x = left + span - width - t * span;
+
+        dc.PushTransform(new RotateTransform(angle, 0, 0));
+        dc.DrawRectangle(BodySheenBrush, null, new Rect(x, top, width, height));
+        dc.Pop();
+    }
+
+    private static Brush CreateBodySheenBrush()
+    {
+        var brush = new LinearGradientBrush
+        {
+            StartPoint = new Point(0, 0),
+            EndPoint = new Point(1, 0),
+        };
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF), 0.00));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x22, 0xFF, 0xFF, 0xFF), 0.45));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF), 0.55));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF), 1.00));
+        brush.Freeze();
+        return brush;
+    }
 
     protected static Geometry Build(Action<StreamGeometryContext> build)
     {

@@ -15,11 +15,19 @@ internal static class MechFishRenderer
 {
     private static readonly FishShape GlassShape = new GlassFishShape();
     private static readonly FishShape KrillShapeImpl = new KrillShape();
+    private static readonly FishShape JellyfishShapeImpl = new JellyfishShape();
+    private static readonly FishShape PufferShapeImpl = new PufferShape();
 
     public static void Draw(DrawingContext dc, MechFish fish)
     {
         FishPalette palette = fish.Palette;
-        FishShape shape = fish.Species == FishSpecies.Krill ? KrillShapeImpl : GlassShape;
+        FishShape shape = fish.Species switch
+        {
+            FishSpecies.Krill => KrillShapeImpl,
+            FishSpecies.Jellyfish => JellyfishShapeImpl,
+            FishSpecies.Puffer => PufferShapeImpl,
+            _ => GlassShape,
+        };
         double scale = fish.RenderScale;
 
         if (scale <= 0.01)
@@ -33,13 +41,32 @@ internal static class MechFishRenderer
         bool mirror = Math.Cos(fish.Heading) < 0;
 
         dc.PushTransform(new TranslateTransform(fish.Position.X, fish.Position.Y));
-        dc.PushTransform(new RotateTransform(fish.Heading * 180.0 / Math.PI));
 
-        int transformDepth = 2;
-        if (mirror)
+        int transformDepth = 1;
+        if (shape.Upright)
         {
-            dc.PushTransform(new ScaleTransform(1, -1));
+            // 直立体型不按航向旋转，只按上下游方向做很小的倾斜；
+            // 左右朝向用水平镜像表达，避免身体整个倒过来。
+            dc.PushTransform(new RotateTransform(Math.Sin(fish.Heading) * 5.0));
             transformDepth++;
+
+            if (mirror)
+            {
+                dc.PushTransform(new ScaleTransform(-1, 1));
+                transformDepth++;
+            }
+        }
+        else
+        {
+            dc.PushTransform(new RotateTransform(fish.Heading * 180.0 / Math.PI));
+            transformDepth++;
+
+            // 朝左游时做垂直镜像，避免鱼整体翻转成肚皮朝上。
+            if (mirror)
+            {
+                dc.PushTransform(new ScaleTransform(1, -1));
+                transformDepth++;
+            }
         }
 
         dc.PushTransform(new ScaleTransform(scale, scale));
@@ -56,7 +83,7 @@ internal static class MechFishRenderer
                 shape.HaloRadiusY);
         }
 
-        shape.Draw(dc, palette, fish.Phase, fish.Speed);
+        shape.Draw(dc, palette, fish.Phase, fish.Speed, fish.SheenPhase);
 
         for (int i = 0; i < transformDepth; i++)
         {

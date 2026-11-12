@@ -23,6 +23,12 @@ public sealed class MechFish
     /// <summary>鱼鳍摆动相位。</summary>
     public double Phase { get; set; }
 
+    /// <summary>
+    /// 体侧扫光相位，0-1 循环。独立于 <see cref="Phase"/>，
+    /// 这样扫光速度不受游速影响，并且每个周期末尾留出一段暗场。
+    /// </summary>
+    public double SheenPhase { get; set; }
+
     /// <summary>随机漫步相位，用来产生缓慢的转向变化。</summary>
     public double WanderPhase { get; set; }
 

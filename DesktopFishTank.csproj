@@ -13,7 +13,14 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <SelfContained>false</SelfContained>
+    <!-- Release 发布自带 .NET 运行时，拷到没装运行时的办公电脑也能直接启动；
+         Debug 构建保持轻量，不影响开发时的编译速度。 -->
+    <SelfContained Condition="'$(Configuration)' == 'Release'">true</SelfContained>
+    <SelfContained Condition="'$(Configuration)' != 'Release'">false</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- WPF 的原生库默认留在 exe 旁边，嵌进去后发布目录只剩一个可执行文件。 -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- 同时启用 WinForms 时，WFO0003 会要求删掉清单里的 DPI 设置；
          这里的清单是给 WPF 的 PerMonitorV2 用的，不属于 WinForms 配置，故屏蔽该误报。 -->

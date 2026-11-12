@@ -133,7 +133,7 @@ internal sealed class KrillShape : FishShape
     private static readonly Geometry?[] ThoracopodCache = new Geometry?[LegSteps];
     private static readonly Geometry?[] PleopodCache = new Geometry?[LegSteps];
 
-    public override void Draw(DrawingContext dc, FishPalette palette, double phase, double speed)
+    public override void Draw(DrawingContext dc, FishPalette palette, double phase, double speed, double sheenPhase)
     {
         // 磷虾的附肢频率明显高于鱼鳍，同一个相位乘一个系数就够。
         double p = phase * 1.45;
@@ -150,11 +150,13 @@ internal sealed class KrillShape : FishShape
         dc.PushClip(Carapace);
         dc.DrawGeometry(palette.OrganBrush, palette.SeamPen, Hepatopancreas);
         dc.DrawEllipse(Heart, null, new Point(10, -6.5), 2.0, 1.6);
+        DrawBodySheen(dc, sheenPhase, -10, 56, -18, 36, -8);
         dc.Pop();
 
         dc.PushClip(Abdomen);
         dc.DrawGeometry(null, palette.AnatomyPen, DigestiveTract);
         dc.DrawGeometry(null, palette.SeamPen, AbdomenSegments);
+        DrawBodySheen(dc, sheenPhase, -46, 46, -10, 24, 12);
         dc.Pop();
 
         DrawGlowStripe(dc, palette, p);

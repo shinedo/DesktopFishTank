@@ -8,6 +8,8 @@ public enum FishSpecies
 {
     GlassFish = 0,
     Krill = 1,
+    Jellyfish = 2,
+    Puffer = 3,
 }
 
 /// <summary>一个品种的显示名与随机出现权重。</summary>
@@ -21,8 +23,10 @@ public static class FishSpeciesCatalog
 {
     public static IReadOnlyList<FishSpeciesInfo> All { get; } = new[]
     {
-        new FishSpeciesInfo(FishSpecies.GlassFish, "荧光鱼", 64),
-        new FishSpeciesInfo(FishSpecies.Krill, "磷虾", 36),
+        new FishSpeciesInfo(FishSpecies.GlassFish, "荧光鱼", 50),
+        new FishSpeciesInfo(FishSpecies.Krill, "磷虾", 25),
+        new FishSpeciesInfo(FishSpecies.Jellyfish, "水母", 15),
+        new FishSpeciesInfo(FishSpecies.Puffer, "河豚", 10),
     };
 
     /// <summary>按显示名查品种，找不到返回 null。</summary>

@@ -96,7 +96,9 @@ public sealed class PondEngine
     }
 
     /// <summary>
-    /// 设置允许出现的品种。已经在游动的、属于被关掉品种的生物会立刻换成其他可用品种。
+    /// 设置允许出现的品种。品种开关真的发生变化时，整池生物按新权重重新随机一遍，
+    /// 这样从「只有水母」勾上其他品种后会立刻混出新品种，而不是继续全是水母。
+    /// 只是拖动数量、透明度等滑块时品种列表没变，不会触发重排。
     /// 传入空集合时忽略，保证至少有一个品种。
     /// </summary>
     public void SetEnabledSpecies(IReadOnlyList<FishSpecies> species)
@@ -106,26 +108,37 @@ public sealed class PondEngine
             return;
         }
 
-        _enabledSpecies.Clear();
+        var next = new List<FishSpecies>(species.Count);
         foreach (FishSpecies item in species)
         {
-            if (IsKnownSpecies(item) && !_enabledSpecies.Contains(item))
+            if (IsKnownSpecies(item) && !next.Contains(item))
             {
-                _enabledSpecies.Add(item);
+                next.Add(item);
             }
         }
 
-        if (_enabledSpecies.Count == 0)
+        if (next.Count == 0)
         {
-            _enabledSpecies.Add(FishSpecies.GlassFish);
+            next.Add(FishSpecies.GlassFish);
         }
+
+        bool changed = next.Count != _enabledSpecies.Count;
+        for (int i = 0; !changed && i < next.Count; i++)
+        {
+            changed = next[i] != _enabledSpecies[i];
+        }
+
+        if (!changed)
+        {
+            return;
+        }
+
+        _enabledSpecies.Clear();
+        _enabledSpecies.AddRange(next);
 
         foreach (MechFish fish in _fish)
         {
-            if (!_enabledSpecies.Contains(fish.Species))
-            {
-                fish.Species = PickSpecies();
-            }
+            RerollSpecies(fish);
         }
     }
 
@@ -202,6 +215,8 @@ public sealed class PondEngine
 
         foreach (MechFish fish in _fish)
         {
+            fish.SheenPhase = (fish.SheenPhase + dt / SheenCycleSeconds(fish.Species)) % 1.0;
+
             if (fish.IsDragged)
             {
                 fish.Phase += dt * 9.0;
@@ -226,9 +241,18 @@ public sealed class PondEngine
 
             fish.Heading = NormalizeAngle(fish.Heading);
             fish.Speed += (fish.CruiseSpeed - fish.Speed) * Math.Min(1.0, dt * 3.2);
+
+            double travel = fish.Speed * dt;
+            if (fish.Species == FishSpecies.Jellyfish)
+            {
+                // 伞体收缩时推进、舒张时几乎漂着，形成水母特有的脉冲游动。
+                double pulse = Math.Max(0, Math.Sin(fish.Phase));
+                travel *= 0.45 + 0.85 * pulse;
+            }
+
             fish.Position = new Point(
-                fish.Position.X + Math.Cos(fish.Heading) * fish.Speed * dt,
-                fish.Position.Y + Math.Sin(fish.Heading) * fish.Speed * dt);
+                fish.Position.X + Math.Cos(fish.Heading) * travel,
+                fish.Position.Y + Math.Sin(fish.Heading) * travel);
             fish.Phase += dt * (4.2 + fish.Speed * 0.045);
 
             ClampInside(fish);
@@ -261,7 +285,7 @@ public sealed class PondEngine
         return FishPaletteCatalog.All[_enabledPalettes[_random.Next(_enabledPalettes.Count)]];
     }
 
-    /// <summary>按品种权重抽取：默认两种都启用时，磷虾约占三成。</summary>
+    /// <summary>按品种权重抽取：三种都启用时磷虾约占三成、水母约两成。</summary>
     private FishSpecies PickSpecies()
     {
         int total = 0;
@@ -312,7 +336,6 @@ public sealed class PondEngine
     private MechFish CreateFish()
     {
         FishSpecies species = PickSpecies();
-        bool isKrill = species == FishSpecies.Krill;
 
         var fish = new MechFish
         {
@@ -323,10 +346,8 @@ public sealed class PondEngine
             Heading = _random.NextDouble() * Math.PI * 2,
             WanderPhase = _random.NextDouble() * Math.PI * 2,
             Phase = _random.NextDouble() * Math.PI * 2,
-            // 磷虾本体只有鱼的六成左右，混在鱼群里才读得出「小虾」的比例。
-            Size = isKrill
-                ? 0.56 + _random.NextDouble() * 0.26
-                : 0.90 + _random.NextDouble() * 0.75,
+            SheenPhase = _random.NextDouble(),
+            Size = RollSize(species),
             MaxRenderScale = _maxRenderScale,
             ShowHalo = _showHalo,
             Position = new Point(
@@ -334,10 +355,62 @@ public sealed class PondEngine
                 _random.NextDouble() * Math.Max(1, _bounds.Height)),
         };
 
-        double speciesSpeed = isKrill ? 1.18 : 1.0;
-        fish.CruiseSpeed = (CruiseSpeedMin + _random.NextDouble() * CruiseSpeedSpan) * fish.Depth * speciesSpeed;
+        fish.CruiseSpeed = RollCruiseSpeed(species, fish.Depth);
         fish.Speed = fish.CruiseSpeed;
         return fish;
+    }
+
+    /// <summary>按品种重新抽取体型：磷虾约为鱼的六成，水母、河豚比鱼略小。</summary>
+    private double RollSize(FishSpecies species)
+    {
+        return species switch
+        {
+            FishSpecies.Krill => 0.56 + _random.NextDouble() * 0.26,
+            FishSpecies.Jellyfish => 0.74 + _random.NextDouble() * 0.30,
+            FishSpecies.Puffer => 0.78 + _random.NextDouble() * 0.27,
+            _ => 0.90 + _random.NextDouble() * 0.75,
+        };
+    }
+
+    /// <summary>
+    /// 体侧扫光一个完整周期的秒数，其中扫过占 <c>FishShape</c> 里的 SheenDuty（四分之三），
+    /// 剩下四分之一是两次扫光之间的暗场停顿。磷虾体型小、视觉上最易显快，周期略长一点。
+    /// </summary>
+    private static double SheenCycleSeconds(FishSpecies species)
+    {
+        return species switch
+        {
+            FishSpecies.Krill => 2.4,
+            FishSpecies.Jellyfish => 2.0,
+            FishSpecies.Puffer => 2.1,
+            _ => 2.1,
+        };
+    }
+
+    /// <summary>
+    /// 按品种抽取巡游速度：磷虾快一些，水母靠搏动推进、只有鱼的一半左右；
+    /// 河豚缓慢悬停。
+    /// </summary>
+    private double RollCruiseSpeed(FishSpecies species, double depth)
+    {
+        double speciesSpeed = species switch
+        {
+            FishSpecies.Krill => 1.18,
+            FishSpecies.Jellyfish => 0.52,
+            FishSpecies.Puffer => 0.55,
+            _ => 1.0,
+        };
+
+        return (CruiseSpeedMin + _random.NextDouble() * CruiseSpeedSpan) * depth * speciesSpeed;
+    }
+
+    /// <summary>重新随机一条生物的品种，并把体型、速度同步成该品种的取值范围。</summary>
+    private void RerollSpecies(MechFish fish)
+    {
+        fish.Species = PickSpecies();
+        fish.Size = RollSize(fish.Species);
+        fish.CruiseSpeed = RollCruiseSpeed(fish.Species, fish.Depth);
+        fish.Speed = fish.CruiseSpeed;
     }
 
     private static void ApplyWander(MechFish fish, double dt)

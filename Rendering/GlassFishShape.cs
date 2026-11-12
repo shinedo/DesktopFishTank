@@ -174,16 +174,13 @@ internal sealed class GlassFishShape : FishShape
     private const int TailAmplitudeSteps = 4;
     private static readonly Geometry?[] TailCache = new Geometry?[TailPhaseSteps * TailAmplitudeSteps];
 
-    /// <summary>扫过体侧的柔光带，随相位横向移动，模拟玻璃折射的光泽。</summary>
-    private static readonly Brush SheenBrush = CreateSheen();
-
     /// <summary>背光：体壁上方的一层柔亮，给扁平的轮廓一点圆润的体积。</summary>
     private static readonly Brush BackLight = CreateBodyShade(Color.FromArgb(0x20, 0xFF, 0xFF, 0xFF));
 
     /// <summary>腹影：腹部压一层冷暗色，玻璃才有厚度，而不是一张薄膜。</summary>
     private static readonly Brush BellyShade = CreateBodyShade(Color.FromArgb(0x2C, 0x05, 0x10, 0x1C));
 
-    public override void Draw(DrawingContext dc, FishPalette palette, double phase, double speed)
+    public override void Draw(DrawingContext dc, FishPalette palette, double phase, double speed, double sheenPhase)
     {
         double dorsalSway = Math.Sin(phase + 1.1) * 5.0;
         double pectoralSway = Math.Sin(phase + 0.4) * 15.0;
@@ -218,10 +215,7 @@ internal sealed class GlassFishShape : FishShape
         DrawAnatomy(dc, palette, phase);
 
         // 折射光带：一条很淡的斜向白光缓慢扫过体侧。
-        double sweep = ((phase * 0.13) % 1.0) * 118.0 - 59.0;
-        dc.PushTransform(new RotateTransform(-12, 0, 0));
-        dc.DrawRectangle(SheenBrush, null, new Rect(sweep, -22, 15, 44));
-        dc.Pop();
+        DrawBodySheen(dc, sheenPhase, -59, 118, -22, 44, -12);
 
         // 体后红斑：霓虹灯鱼尾部那段暖色，透在体壁里。
         dc.DrawEllipse(palette.PatchBrush, null, new Point(-16, 5.0), 17.0, 4.8);
@@ -428,21 +422,6 @@ internal sealed class GlassFishShape : FishShape
         };
         brush.GradientStops.Add(new GradientStop(color, 0.0));
         brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x00, color.R, color.G, color.B), 1.0));
-        brush.Freeze();
-        return brush;
-    }
-
-    private static Brush CreateSheen()
-    {
-        var brush = new LinearGradientBrush
-        {
-            StartPoint = new Point(0, 0),
-            EndPoint = new Point(1, 0),
-        };
-        brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF), 0.00));
-        brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x22, 0xFF, 0xFF, 0xFF), 0.45));
-        brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF), 0.55));
-        brush.GradientStops.Add(new GradientStop(Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF), 1.00));
         brush.Freeze();
         return brush;
     }
