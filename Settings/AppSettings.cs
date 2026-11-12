@@ -21,6 +21,9 @@ public sealed class AppSettings
     /// <summary>允许出现的配色名；null 或空表示全部启用。</summary>
     public List<string>? EnabledPalettes { get; set; }
 
+    /// <summary>允许出现的品种名（荧光鱼、磷虾）；null 或空表示全部启用。</summary>
+    public List<string>? EnabledSpecies { get; set; }
+
     public int FrameRate { get; set; } = 30;
 
     public HotkeyBinding? AttractHotkey { get; set; } = HotkeyBinding.DefaultAttract;

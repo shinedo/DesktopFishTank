@@ -30,6 +30,10 @@ public sealed class PondEngine
 
     /// <summary>当前允许出现的配色下标；至少保留一项。</summary>
     private readonly List<int> _enabledPalettes = FishPaletteCatalog.AllIndices();
+
+    /// <summary>当前允许出现的品种；至少保留一项。</summary>
+    private readonly List<FishSpecies> _enabledSpecies = FishSpeciesCatalog.AllSpecies();
+
     private Rect _bounds = new(0, 0, 1024, 768);
 
     /// <summary>所有鱼的整体不透明度，由绘制表面统一套一次，避免逐鱼开离屏分组。</summary>
@@ -87,6 +91,40 @@ public sealed class PondEngine
             if (!IsPaletteEnabled(fish.Palette))
             {
                 fish.Palette = PickPalette();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 设置允许出现的品种。已经在游动的、属于被关掉品种的生物会立刻换成其他可用品种。
+    /// 传入空集合时忽略，保证至少有一个品种。
+    /// </summary>
+    public void SetEnabledSpecies(IReadOnlyList<FishSpecies> species)
+    {
+        if (species.Count == 0)
+        {
+            return;
+        }
+
+        _enabledSpecies.Clear();
+        foreach (FishSpecies item in species)
+        {
+            if (IsKnownSpecies(item) && !_enabledSpecies.Contains(item))
+            {
+                _enabledSpecies.Add(item);
+            }
+        }
+
+        if (_enabledSpecies.Count == 0)
+        {
+            _enabledSpecies.Add(FishSpecies.GlassFish);
+        }
+
+        foreach (MechFish fish in _fish)
+        {
+            if (!_enabledSpecies.Contains(fish.Species))
+            {
+                fish.Species = PickSpecies();
             }
         }
     }
@@ -223,6 +261,41 @@ public sealed class PondEngine
         return FishPaletteCatalog.All[_enabledPalettes[_random.Next(_enabledPalettes.Count)]];
     }
 
+    /// <summary>按品种权重抽取：默认两种都启用时，磷虾约占三成。</summary>
+    private FishSpecies PickSpecies()
+    {
+        int total = 0;
+        foreach (FishSpecies species in _enabledSpecies)
+        {
+            total += FishSpeciesCatalog.WeightOf(species);
+        }
+
+        int roll = _random.Next(Math.Max(1, total));
+        foreach (FishSpecies species in _enabledSpecies)
+        {
+            roll -= FishSpeciesCatalog.WeightOf(species);
+            if (roll < 0)
+            {
+                return species;
+            }
+        }
+
+        return _enabledSpecies[0];
+    }
+
+    private static bool IsKnownSpecies(FishSpecies species)
+    {
+        for (int i = 0; i < FishSpeciesCatalog.All.Count; i++)
+        {
+            if (FishSpeciesCatalog.All[i].Species == species)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private bool IsPaletteEnabled(FishPalette palette)
     {
         foreach (int index in _enabledPalettes)
@@ -238,15 +311,22 @@ public sealed class PondEngine
 
     private MechFish CreateFish()
     {
+        FishSpecies species = PickSpecies();
+        bool isKrill = species == FishSpecies.Krill;
+
         var fish = new MechFish
         {
+            Species = species,
             Palette = PickPalette(),
             OrbitDirection = _random.Next(2) == 0 ? 1 : -1,
             Depth = 0.70 + _random.NextDouble() * 0.30,
             Heading = _random.NextDouble() * Math.PI * 2,
             WanderPhase = _random.NextDouble() * Math.PI * 2,
             Phase = _random.NextDouble() * Math.PI * 2,
-            Size = 0.90 + _random.NextDouble() * 0.75,
+            // 磷虾本体只有鱼的六成左右，混在鱼群里才读得出「小虾」的比例。
+            Size = isKrill
+                ? 0.56 + _random.NextDouble() * 0.26
+                : 0.90 + _random.NextDouble() * 0.75,
             MaxRenderScale = _maxRenderScale,
             ShowHalo = _showHalo,
             Position = new Point(
@@ -254,7 +334,8 @@ public sealed class PondEngine
                 _random.NextDouble() * Math.Max(1, _bounds.Height)),
         };
 
-        fish.CruiseSpeed = (CruiseSpeedMin + _random.NextDouble() * CruiseSpeedSpan) * fish.Depth;
+        double speciesSpeed = isKrill ? 1.18 : 1.0;
+        fish.CruiseSpeed = (CruiseSpeedMin + _random.NextDouble() * CruiseSpeedSpan) * fish.Depth * speciesSpeed;
         fish.Speed = fish.CruiseSpeed;
         return fish;
     }

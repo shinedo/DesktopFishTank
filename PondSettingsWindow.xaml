@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="鱼群设置"
         Width="480"
-        Height="600"
+        Height="700"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Topmost="True"
@@ -117,7 +117,19 @@
                           Checked="OnHaloChanged"
                           Unchecked="OnHaloChanged" />
 
-                <Grid Margin="0,20,0,8">
+                <Grid Margin="0,16,0,6">
+                    <StackPanel>
+                        <TextBlock Text="品种" FontSize="13" />
+                        <TextBlock Text="取消勾选的品种不再出现，至少保留一种"
+                                   FontSize="11"
+                                   Foreground="#7E93AA"
+                                   Margin="0,3,0,0" />
+                    </StackPanel>
+                </Grid>
+
+                <WrapPanel x:Name="SpeciesPanel" Margin="0,0,0,2" />
+
+                <Grid Margin="0,12,0,8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />

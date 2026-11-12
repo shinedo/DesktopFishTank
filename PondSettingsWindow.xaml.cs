@@ -13,7 +13,8 @@ public sealed record PondSettingsValues(
     double MaxRenderScale,
     double Opacity,
     bool ShowHalo,
-    IReadOnlyList<string> EnabledPalettes);
+    IReadOnlyList<string> EnabledPalettes,
+    IReadOnlyList<string> EnabledSpecies);
 
 /// <summary>
 /// 鱼群设置窗口：数量、最大体型、透明度用滑块连续调节，荧光配色逐项开关，
@@ -29,6 +30,7 @@ public partial class PondSettingsWindow : Window
         FrozenBrush(Color.FromRgb(0xDC, 0xE7, 0xF2));
 
     private readonly List<CheckBox> _paletteChecks = new();
+    private readonly List<CheckBox> _speciesChecks = new();
     private bool _initializing = true;
 
     public PondSettingsWindow(
@@ -36,11 +38,13 @@ public partial class PondSettingsWindow : Window
         double maxRenderScale,
         double opacity,
         bool showHalo,
-        IReadOnlyList<string>? enabledPalettes)
+        IReadOnlyList<string>? enabledPalettes,
+        IReadOnlyList<string>? enabledSpecies)
     {
         InitializeComponent();
 
         BuildPaletteChecks(enabledPalettes);
+        BuildSpeciesChecks(enabledSpecies);
 
         // 在 XAML 里挂 ValueChanged 会在控件构造过程中提前触发，
         // 那时数值文本还没创建，会直接空引用；统一放到初始化之后挂。
@@ -106,6 +110,29 @@ public partial class PondSettingsWindow : Window
         }
     }
 
+    private void BuildSpeciesChecks(IReadOnlyList<string>? enabledSpecies)
+    {
+        bool enableAll = enabledSpecies == null || enabledSpecies.Count == 0;
+
+        foreach (FishSpeciesInfo species in FishSpeciesCatalog.All)
+        {
+            var check = new CheckBox
+            {
+                Content = species.Name,
+                IsChecked = enableAll || ContainsName(enabledSpecies, species.Name),
+                Foreground = LabelBrush,
+                Margin = new Thickness(0, 0, 14, 8),
+                VerticalContentAlignment = VerticalAlignment.Center,
+            };
+
+            check.Checked += OnSpeciesChanged;
+            check.Unchecked += OnSpeciesChanged;
+
+            _speciesChecks.Add(check);
+            SpeciesPanel.Children.Add(check);
+        }
+    }
+
     private static bool ContainsName(IReadOnlyList<string>? names, string name)
     {
         if (names == null)
@@ -152,6 +179,23 @@ public partial class PondSettingsWindow : Window
         RaiseChanged();
     }
 
+    private void OnSpeciesChanged(object sender, RoutedEventArgs e)
+    {
+        if (_initializing)
+        {
+            return;
+        }
+
+        // 至少保留一个品种，取消最后一项时立刻恢复勾选。
+        if (!HasCheckedSpecies())
+        {
+            ((CheckBox)sender).IsChecked = true;
+            return;
+        }
+
+        RaiseChanged();
+    }
+
     private void OnSelectAllClick(object sender, RoutedEventArgs e)
     {
         SetAllPalettes(true);
@@ -167,6 +211,7 @@ public partial class PondSettingsWindow : Window
         OpacitySlider.Value = DefaultOpacity;
         HaloCheck.IsChecked = true;
         SetAllPalettes(true);
+        SetAllSpecies(true);
 
         _initializing = false;
         UpdateLabels();
@@ -190,6 +235,32 @@ public partial class PondSettingsWindow : Window
         }
 
         _initializing = wasInitializing;
+    }
+
+    private void SetAllSpecies(bool isChecked)
+    {
+        bool wasInitializing = _initializing;
+        _initializing = true;
+
+        foreach (CheckBox check in _speciesChecks)
+        {
+            check.IsChecked = isChecked;
+        }
+
+        _initializing = wasInitializing;
+    }
+
+    private bool HasCheckedSpecies()
+    {
+        foreach (CheckBox check in _speciesChecks)
+        {
+            if (check.IsChecked == true)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private bool HasCheckedPalette()
@@ -230,12 +301,22 @@ public partial class PondSettingsWindow : Window
             }
         }
 
+        var speciesNames = new List<string>();
+        for (int i = 0; i < _speciesChecks.Count; i++)
+        {
+            if (_speciesChecks[i].IsChecked == true)
+            {
+                speciesNames.Add(FishSpeciesCatalog.All[i].Name);
+            }
+        }
+
         Changed?.Invoke(new PondSettingsValues(
             (int)Math.Round(CountSlider.Value),
             Math.Round(SizeSlider.Value, 2),
             Math.Round(OpacitySlider.Value) / 100.0,
             HaloCheck.IsChecked == true,
-            names));
+            names,
+            speciesNames));
     }
 
     private static Brush FrozenBrush(Color color)

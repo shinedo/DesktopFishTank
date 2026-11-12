@@ -153,6 +153,7 @@ public partial class MainWindow : Window
             Pond.Engine.SetFishOpacity(_settings.ResolveFishOpacity());
             Pond.Engine.SetShowHalo(_settings.ShowHalo);
             Pond.Engine.SetEnabledPalettes(ResolveEnabledPaletteIndices(_settings.EnabledPalettes));
+            Pond.Engine.SetEnabledSpecies(ResolveEnabledSpecies(_settings.EnabledSpecies));
             Pond.Engine.SetFishCount(_settings.FishCount);
             _frameInterval = 1.0 / Math.Clamp(_settings.FrameRate, 5, 120);
 
@@ -413,7 +414,8 @@ public partial class MainWindow : Window
                 _settings.ResolveMaxFishScale(),
                 _settings.ResolveFishOpacity(),
                 _settings.ShowHalo,
-                _settings.EnabledPalettes)
+                _settings.EnabledPalettes,
+                _settings.EnabledSpecies)
             {
                 Topmost = true,
             };
@@ -438,12 +440,14 @@ public partial class MainWindow : Window
         Pond.Engine.SetFishOpacity(values.Opacity);
         Pond.Engine.SetShowHalo(values.ShowHalo);
         Pond.Engine.SetEnabledPalettes(ResolveEnabledPaletteIndices(values.EnabledPalettes));
+        Pond.Engine.SetEnabledSpecies(ResolveEnabledSpecies(values.EnabledSpecies));
 
         _settings.FishCount = values.FishCount;
         _settings.MaxFishScale = values.MaxRenderScale;
         _settings.FishOpacity = values.Opacity;
         _settings.ShowHalo = values.ShowHalo;
         _settings.EnabledPalettes = new List<string>(values.EnabledPalettes);
+        _settings.EnabledSpecies = new List<string>(values.EnabledSpecies);
 
         Pond.InvalidateVisual();
     }
@@ -467,6 +471,26 @@ public partial class MainWindow : Window
         }
 
         return indices.Count > 0 ? indices : FishPaletteCatalog.AllIndices();
+    }
+
+    /// <summary>把配置里的品种名换算成枚举；名字失效或为空时回退到全部启用。</summary>
+    private static List<FishSpecies> ResolveEnabledSpecies(IReadOnlyList<string>? names)
+    {
+        if (names == null || names.Count == 0)
+        {
+            return FishSpeciesCatalog.AllSpecies();
+        }
+
+        var species = new List<FishSpecies>();
+        foreach (string name in names)
+        {
+            if (FishSpeciesCatalog.FindByName(name) is { } found && !species.Contains(found))
+            {
+                species.Add(found);
+            }
+        }
+
+        return species.Count > 0 ? species : FishSpeciesCatalog.AllSpecies();
     }
 
     private void OpenAttractHotkeySettings()

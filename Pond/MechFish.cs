@@ -32,6 +32,9 @@ public sealed class MechFish
     /// <summary>远近层级，0.65 - 1.0，影响缩放与不透明度。</summary>
     public double Depth { get; set; } = 1.0;
 
+    /// <summary>品种：荧光鱼或磷虾。决定绘制哪个矢量造型。</summary>
+    public FishSpecies Species { get; set; } = FishSpecies.GlassFish;
+
     public FishPalette Palette { get; set; } = FishPaletteCatalog.Default;
 
     /// <summary>是否绘制鱼周围那层暗淡的荧光光晕。</summary>

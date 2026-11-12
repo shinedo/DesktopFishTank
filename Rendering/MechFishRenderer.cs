@@ -13,11 +13,13 @@ namespace DesktopFishTank.Rendering;
 /// </summary>
 internal static class MechFishRenderer
 {
-    private static readonly FishShape Shape = new GlassFishShape();
+    private static readonly FishShape GlassShape = new GlassFishShape();
+    private static readonly FishShape KrillShapeImpl = new KrillShape();
 
     public static void Draw(DrawingContext dc, MechFish fish)
     {
         FishPalette palette = fish.Palette;
+        FishShape shape = fish.Species == FishSpecies.Krill ? KrillShapeImpl : GlassShape;
         double scale = fish.RenderScale;
 
         if (scale <= 0.01)
@@ -50,11 +52,11 @@ internal static class MechFishRenderer
                 palette.HaloBrush,
                 null,
                 new Point(2, 0),
-                Shape.HaloRadiusX,
-                Shape.HaloRadiusY);
+                shape.HaloRadiusX,
+                shape.HaloRadiusY);
         }
 
-        Shape.Draw(dc, palette, fish.Phase, fish.Speed);
+        shape.Draw(dc, palette, fish.Phase, fish.Speed);
 
         for (int i = 0; i < transformDepth; i++)
         {
