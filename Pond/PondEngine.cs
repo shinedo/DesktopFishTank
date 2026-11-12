@@ -203,6 +203,22 @@ public sealed class PondEngine
         }
     }
 
+    /// <summary>
+    /// 整池重新随机：位置、品种、配色、体型和游速全部重抽，用于每次重新显示鱼塘时换一批鱼。
+    /// 数量保持不变；正在拖拽的鱼会先放开，避免持有已被替换的旧对象。
+    /// </summary>
+    public void RespawnAll()
+    {
+        int count = _fish.Count;
+        _fish.Clear();
+        DraggedFish = null;
+
+        for (int i = 0; i < count; i++)
+        {
+            _fish.Add(CreateFish());
+        }
+    }
+
     public void Update(double dt)
     {
         if (dt <= MinDt || _fish.Count == 0)
@@ -361,14 +377,13 @@ public sealed class PondEngine
         return fish;
     }
 
-    /// <summary>按品种重新抽取体型：磷虾约为鱼的六成，水母、河豚比鱼略小。</summary>
+    /// <summary>按品种重新抽取体型：磷虾约为鱼的六成，水母比鱼略小。</summary>
     private double RollSize(FishSpecies species)
     {
         return species switch
         {
             FishSpecies.Krill => 0.56 + _random.NextDouble() * 0.26,
             FishSpecies.Jellyfish => 0.74 + _random.NextDouble() * 0.30,
-            FishSpecies.Puffer => 0.78 + _random.NextDouble() * 0.27,
             _ => 0.90 + _random.NextDouble() * 0.75,
         };
     }
@@ -474,14 +489,12 @@ public sealed class PondEngine
         {
             FishSpecies.Krill => 2.15,
             FishSpecies.Jellyfish => 1.8,
-            FishSpecies.Puffer => 1.9,
             _ => 1.9,
         };
     }
 
     /// <summary>
-    /// 按品种抽取巡游速度：磷虾快一些，水母靠搏动推进、只有鱼的一半左右；
-    /// 河豚缓慢悬停。
+    /// 按品种抽取巡游速度：磷虾快一些，水母靠搏动推进、只有鱼的一半左右。
     /// </summary>
     private double RollCruiseSpeed(FishSpecies species, double depth)
     {
@@ -489,7 +502,6 @@ public sealed class PondEngine
         {
             FishSpecies.Krill => 1.18,
             FishSpecies.Jellyfish => 0.52,
-            FishSpecies.Puffer => 0.55,
             _ => 1.0,
         };
 

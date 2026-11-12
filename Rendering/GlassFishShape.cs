@@ -30,19 +30,62 @@ internal sealed class GlassFishShape : FishShape
         ctx.BezierTo(new Point(40, 5.5), new Point(44.5, 3), new Point(46, 1), true, true);
     });
 
+    /// <summary>
+    /// 背鳍与臀鳍：向后伸出的尖鳍，根部压在体表轮廓上，鳍内可见放射状骨刺。
+    /// 这对鳍保持静止——桌面尺寸下摆动容易显得脱离身体，静止的尖鳍更利落。
+    /// </summary>
     private static readonly Geometry DorsalFin = Build(ctx =>
     {
-        ctx.BeginFigure(new Point(20, -15.0), true, true);
-        ctx.BezierTo(new Point(16, -22), new Point(10, -28), new Point(2, -27.5), true, true);
-        ctx.BezierTo(new Point(-5, -27), new Point(-11, -20.5), new Point(-15, -15.5), true, true);
+        ctx.BeginFigure(new Point(15, -16.2), true, true);
+        ctx.BezierTo(new Point(6, -25.0), new Point(-5, -31.0), new Point(-16, -33.0), true, true);
+        ctx.QuadraticBezierTo(new Point(-14.5, -25.0), new Point(-12, -15.2), true, true);
     });
 
-    /// <summary>臀鳍：沿腹部向后拉得很长，是玻璃猫鱼的标志性轮廓。</summary>
+    /// <summary>背鳍外缘：根部不描边，鳍才像从体表长出来。</summary>
+    private static readonly Geometry DorsalFinEdge = Build(ctx =>
+    {
+        ctx.BeginFigure(new Point(15, -16.2), false, false);
+        ctx.BezierTo(new Point(6, -25.0), new Point(-5, -31.0), new Point(-16, -33.0), true, false);
+        ctx.QuadraticBezierTo(new Point(-14.5, -25.0), new Point(-12, -15.2), true, false);
+    });
+
+    /// <summary>背鳍骨刺：从根部放射到鳍缘，末端收在鳍膜内。</summary>
+    private static readonly Geometry DorsalFinRays = Build(ctx =>
+    {
+        ctx.BeginFigure(new Point(11, -16.6), false, false);
+        ctx.LineTo(new Point(4, -21.8), true, false);
+
+        ctx.BeginFigure(new Point(7, -16.4), false, false);
+        ctx.LineTo(new Point(-3, -25.4), true, false);
+
+        ctx.BeginFigure(new Point(3, -16.2), false, false);
+        ctx.LineTo(new Point(-10, -29.2), true, false);
+    });
+
     private static readonly Geometry AnalFin = Build(ctx =>
     {
-        ctx.BeginFigure(new Point(-3, 14.5), true, true);
-        ctx.BezierTo(new Point(-10, 21.5), new Point(-21, 24), new Point(-30, 18.5), true, true);
-        ctx.BezierTo(new Point(-36, 14), new Point(-40, 8), new Point(-42.5, 3.5), true, true);
+        ctx.BeginFigure(new Point(-14, 14.2), true, true);
+        ctx.BezierTo(new Point(-22, 18.4), new Point(-31, 22.0), new Point(-40, 24.0), true, true);
+        ctx.QuadraticBezierTo(new Point(-37, 16.0), new Point(-33, 7.4), true, true);
+    });
+
+    private static readonly Geometry AnalFinEdge = Build(ctx =>
+    {
+        ctx.BeginFigure(new Point(-14, 14.2), false, false);
+        ctx.BezierTo(new Point(-22, 18.4), new Point(-31, 22.0), new Point(-40, 24.0), true, false);
+        ctx.QuadraticBezierTo(new Point(-37, 16.0), new Point(-33, 7.4), true, false);
+    });
+
+    private static readonly Geometry AnalFinRays = Build(ctx =>
+    {
+        ctx.BeginFigure(new Point(-18, 14.0), false, false);
+        ctx.LineTo(new Point(-28, 19.0), true, false);
+
+        ctx.BeginFigure(new Point(-21, 13.6), false, false);
+        ctx.LineTo(new Point(-31, 20.2), true, false);
+
+        ctx.BeginFigure(new Point(-24, 13.0), false, false);
+        ctx.LineTo(new Point(-35, 21.8), true, false);
     });
 
     private static readonly Geometry PelvicFin = Build(ctx =>
@@ -131,13 +174,6 @@ internal sealed class GlassFishShape : FishShape
     private static readonly Geometry StripeOuter = BuildStripe(3.2);
     private static readonly Geometry StripeMid = BuildStripe(1.7);
 
-    /// <summary>背部镜面高光：玻璃体表面那道又长又亮的水光。</summary>
-    private static readonly Geometry BackHighlight = Build(ctx =>
-    {
-        ctx.BeginFigure(new Point(34, -9.0), false, false);
-        ctx.BezierTo(new Point(16, -12.6), new Point(0, -13.2), new Point(-20, -10.4), true, false);
-    });
-
     private static readonly Geometry HeadHighlight = Build(ctx =>
     {
         ctx.BeginFigure(new Point(41.5, -2.2), false, false);
@@ -182,15 +218,17 @@ internal sealed class GlassFishShape : FishShape
 
     public override void Draw(DrawingContext dc, FishPalette palette, double phase, double speed, double sheenPhase)
     {
-        double dorsalSway = Math.Sin(phase + 1.1) * 5.0;
         double pectoralSway = Math.Sin(phase + 0.4) * 15.0;
-        double pelvicSway = Math.Sin(phase + 1.9) * 9.0;
+
+        // 背鳍、臀鳍只绕根部摆 2° 左右：根部始终贴着身体，只有鳍尖轻轻起伏。
+        double dorsalSway = Math.Sin(phase + 1.1) * 2.2;
+        double analSway = Math.Sin(phase + 0.7) * 1.8;
 
         DrawTail(dc, palette, phase, speed);
 
-        PaintSwayFin(dc, palette, DorsalFin, palette.FinLinePen, -dorsalSway, 8, -20);
-        PaintSwayFin(dc, palette, AnalFin, palette.FinLinePen, dorsalSway * 0.6, -26, 12);
-        PaintSwayFin(dc, palette, PelvicFin, palette.FinLinePen, pelvicSway, -6, 15);
+        DrawFin(dc, palette, DorsalFin, DorsalFinEdge, DorsalFinRays, -dorsalSway, 15, -16.2);
+        DrawFin(dc, palette, AnalFin, AnalFinEdge, AnalFinRays, analSway, -14, 14.2);
+        PaintFin(dc, palette, PelvicFin, palette.FinLinePen);
 
         // 身体本身几乎不着色，形体靠亮边与体内结构读出来。
         PaintBody(dc, palette, Body);
@@ -253,6 +291,28 @@ internal sealed class GlassFishShape : FishShape
         dc.DrawGeometry(null, palette.SeamPen, Mouth);
     }
 
+    /// <summary>
+    /// 尖鳍：鳍膜 + 外缘线 + 放射状骨刺；根部不描边，鳍才像从体表长出来。
+    /// 绕根部枢轴的小角度旋转让鳍尖有轻微起伏，根部仍然贴合身体。
+    /// </summary>
+    private static void DrawFin(
+        DrawingContext dc,
+        FishPalette palette,
+        Geometry fin,
+        Geometry edge,
+        Geometry rays,
+        double angle,
+        double pivotX,
+        double pivotY)
+    {
+        dc.PushTransform(new RotateTransform(angle, pivotX, pivotY));
+        dc.DrawGeometry(palette.FinFill, null, fin);
+        dc.DrawGeometry(null, palette.FinLinePen, edge);
+        dc.DrawGeometry(null, FinRayPen, rays);
+        dc.Pop();
+    }
+
+
     /// <summary>体内结构：略微滞后于身体摆动，透明鱼的内脏才有“浮在体腔里”的错觉。</summary>
     private static void DrawAnatomy(DrawingContext dc, FishPalette palette, double phase)
     {
@@ -285,10 +345,9 @@ internal sealed class GlassFishShape : FishShape
         dc.Pop();
     }
 
-    /// <summary>表面高光：背部一道长光、头部一道短光，玻璃的湿润感全靠它们。</summary>
+    /// <summary>表面高光：只留头部一道短光，背部体积改由体壁渐变表现。</summary>
     private static void DrawSpecular(DrawingContext dc, FishPalette palette)
     {
-        dc.DrawGeometry(null, palette.HighlightPen, BackHighlight);
         dc.DrawGeometry(null, palette.HighlightPen, HeadHighlight);
     }
 

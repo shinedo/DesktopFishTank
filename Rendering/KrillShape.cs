@@ -7,7 +7,7 @@ namespace DesktopFishTank.Rendering;
 /// <summary>
 /// 荧光磷虾：半透明头胸甲、分节并向后下弯的腹部、扇形尾扇、一对长触须、
 /// 五对胸足与五对游泳足。造型取南极磷虾的解剖特征——甲壳薄而透，
-/// 肝胰腺与消化道能看见，眼柄把复眼顶出甲壳外，尾扇由中央尾节与两对尾肢组成。
+/// 肝胰腺能看见，眼柄把复眼顶出甲壳外，尾扇由中央尾节与两对尾肢组成。
 /// 全部矢量绘制，摆动几何按相位分档缓存，鱼多时不增加每帧分配。
 /// </summary>
 internal sealed class KrillShape : FishShape
@@ -103,14 +103,6 @@ internal sealed class KrillShape : FishShape
         ctx.BezierTo(new Point(2, -4), new Point(16, -10), new Point(30, -2), true, true);
     });
 
-    /// <summary>消化道：从胃沿腹部一直通到尾柄。</summary>
-    private static readonly Geometry DigestiveTract = Build(ctx =>
-    {
-        ctx.BeginFigure(new Point(26, -1), false, false);
-        ctx.BezierTo(new Point(12, 2.5), new Point(-8, 3.5), new Point(-26, 6.0), true, false);
-        ctx.QuadraticBezierTo(new Point(-34, 7.2), new Point(-40, 8.2), true, false);
-    });
-
     /// <summary>头胸甲上缘的镜面高光。</summary>
     private static readonly Geometry CarapaceHighlight = Build(ctx =>
     {
@@ -154,7 +146,6 @@ internal sealed class KrillShape : FishShape
         dc.Pop();
 
         dc.PushClip(Abdomen);
-        dc.DrawGeometry(null, palette.AnatomyPen, DigestiveTract);
         dc.DrawGeometry(null, palette.SeamPen, AbdomenSegments);
         DrawBodySheen(dc, sheenPhase, -46, 46, -10, 24, 12);
         dc.Pop();

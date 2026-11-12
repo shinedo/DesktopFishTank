@@ -5,7 +5,7 @@ using System.Windows.Media;
 namespace DesktopFishTank.Rendering;
 
 /// <summary>
-/// 荧光水母：半透明钟形伞盖、放射状辐管、伞缘一圈荧光，以及向后拖曳的细长触手
+/// 荧光水母：半透明钟形伞盖、伞缘一圈荧光，以及向后拖曳的细长触手
 /// 和四条褶边口腕。伞盖随相位做收缩—舒张的搏动，伞缘向伞顶收拢；
 /// 触手与口腕各自错相摆动，所有动态几何按相位分档缓存。
 /// </summary>
@@ -40,20 +40,6 @@ internal sealed class JellyfishShape : FishShape
         ctx.BezierTo(new Point(-8.9, -7), new Point(-8.9, 7), new Point(-8.4, 20.5), true, false);
     });
 
-    /// <summary>辐管：从伞顶放射到伞缘的放射状水管。</summary>
-    private static readonly Geometry RadialCanals = Build(ctx =>
-    {
-        for (int i = 0; i < 9; i++)
-        {
-            double t = i / 8.0;
-            double yEnd = -25 + t * 50;
-            double xEnd = -9.5 + Math.Abs(yEnd) * 0.03;
-
-            ctx.BeginFigure(new Point(24, 0), false, false);
-            ctx.QuadraticBezierTo(new Point(8, yEnd * 0.5), new Point(xEnd, yEnd), true, false);
-        }
-    });
-
     /// <summary>伞顶的镜面高光。</summary>
     private static readonly Geometry BellHighlight = Build(ctx =>
     {
@@ -86,8 +72,6 @@ internal sealed class JellyfishShape : FishShape
 
         // 伞腔里的发光团：水母体内的荧光物质，透过伞壁看是一团柔光。
         dc.DrawEllipse(palette.OrganBrush, null, new Point(8, 0), 15.0, 19.0);
-
-        dc.DrawGeometry(null, palette.AnatomyPen, RadialCanals);
 
         dc.DrawGeometry(null, palette.HighlightPen, BellHighlight);
 

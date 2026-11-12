@@ -180,12 +180,32 @@ public partial class MainWindow : Window
             _settings.ResolveAttractHotkey().DisplayName,
             _settings.ResolveInteractHotkey().DisplayName);
 
+        _tray.SetStartupState(StartupRegistration.IsEnabled());
+
         _tray.ToggleVisibilityRequested += TogglePondVisibility;
         _tray.FrameRateSelected += OnFrameRateSelected;
+        _tray.StartupToggleRequested += OnStartupToggleRequested;
         _tray.PondSettingsRequested += OpenPondSettings;
         _tray.AttractHotkeySettingsRequested += OpenAttractHotkeySettings;
         _tray.InteractHotkeySettingsRequested += OpenInteractHotkeySettings;
         _tray.ExitRequested += ExitApplication;
+    }
+
+    /// <summary>切换开机自启；写入失败时回弹勾选状态并提示，避免菜单显示与实际不符。</summary>
+    private void OnStartupToggleRequested(bool enabled)
+    {
+        bool applied = StartupRegistration.SetEnabled(enabled);
+        bool actual = StartupRegistration.IsEnabled();
+        _tray?.SetStartupState(actual);
+
+        if (!applied || actual != enabled)
+        {
+            MessageBox.Show(
+                "无法修改开机自启设置，请检查当前用户对注册表的写入权限。",
+                "机械鱼塘",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
@@ -384,6 +404,9 @@ public partial class MainWindow : Window
             FitToVirtualScreen();
             _lastFrameTime = _clock.Elapsed.TotalSeconds;
             UpdatePondBounds();
+
+            // 每次重新显示都换一批：位置和品种重新抽取，隐藏期间的状态不再延续。
+            Pond.Engine.RespawnAll();
         }
         else
         {

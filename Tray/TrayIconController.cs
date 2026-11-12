@@ -18,6 +18,7 @@ public sealed class TrayIconController : IDisposable
     private readonly ToolStripMenuItem _fps20Item;
     private readonly ToolStripMenuItem _fps30Item;
     private readonly ToolStripMenuItem _fps60Item;
+    private readonly ToolStripMenuItem _startupItem;
 
     private Icon? _icon;
     private bool _disposed;
@@ -25,6 +26,9 @@ public sealed class TrayIconController : IDisposable
     public event Action? ToggleVisibilityRequested;
 
     public event Action<int>? FrameRateSelected;
+
+    /// <summary>请求切换开机自启，参数是目标状态。</summary>
+    public event Action<bool>? StartupToggleRequested;
 
     public event Action? PondSettingsRequested;
 
@@ -52,6 +56,9 @@ public sealed class TrayIconController : IDisposable
         var frameRateMenu = new ToolStripMenuItem("帧率");
         frameRateMenu.DropDownItems.AddRange(new ToolStripItem[] { _fps20Item, _fps30Item, _fps60Item });
 
+        _startupItem = new ToolStripMenuItem("开机自启") { CheckOnClick = false };
+        _startupItem.Click += (_, _) => StartupToggleRequested?.Invoke(!_startupItem.Checked);
+
         _attractHotkeyItem = new ToolStripMenuItem("吸引快捷键：未设置…");
         _attractHotkeyItem.Click += (_, _) => AttractHotkeySettingsRequested?.Invoke();
 
@@ -66,6 +73,7 @@ public sealed class TrayIconController : IDisposable
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(pondSettingsItem);
         menu.Items.Add(frameRateMenu);
+        menu.Items.Add(_startupItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_attractHotkeyItem);
         menu.Items.Add(_interactHotkeyItem);
@@ -98,6 +106,12 @@ public sealed class TrayIconController : IDisposable
     {
         _visibilityItem.Checked = visible;
         _visibilityItem.Text = visible ? "显示鱼塘" : "隐藏鱼塘";
+    }
+
+    /// <summary>把「开机自启」的勾选状态对齐到注册表里的实际状态。</summary>
+    public void SetStartupState(bool enabled)
+    {
+        _startupItem.Checked = enabled;
     }
 
     public void SetAttractHotkeyText(string text)

@@ -26,6 +26,9 @@ internal abstract class FishShape
     /// <summary>扫过体侧的柔光带，所有品种共用，随相位横向移动。</summary>
     protected static readonly Brush BodySheenBrush = CreateBodySheenBrush();
 
+    /// <summary>骨刺：比鳍膜亮一档的白线，桌面尺寸下也读得出“骨”的结构。</summary>
+    protected static readonly Pen FinRayPen = CreateFinRayPen();
+
     /// <summary>扫光占整个周期的比例，剩余部分留作暗场间隔。</summary>
     private const double SheenDuty = 0.80;
 
@@ -58,6 +61,16 @@ internal abstract class FishShape
         dc.PushTransform(new RotateTransform(angle, 0, 0));
         dc.DrawRectangle(BodySheenBrush, null, new Rect(x, top, width, height));
         dc.Pop();
+    }
+
+    private static Pen CreateFinRayPen()
+    {
+        var brush = new SolidColorBrush(Color.FromArgb(0x70, 0xFF, 0xFF, 0xFF));
+        brush.Freeze();
+
+        var pen = new Pen(brush, 0.8);
+        pen.Freeze();
+        return pen;
     }
 
     private static Brush CreateBodySheenBrush()

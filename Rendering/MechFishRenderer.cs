@@ -16,7 +16,6 @@ internal static class MechFishRenderer
     private static readonly FishShape GlassShape = new GlassFishShape();
     private static readonly FishShape KrillShapeImpl = new KrillShape();
     private static readonly FishShape JellyfishShapeImpl = new JellyfishShape();
-    private static readonly FishShape PufferShapeImpl = new PufferShape();
 
     public static void Draw(DrawingContext dc, MechFish fish)
     {
@@ -25,7 +24,6 @@ internal static class MechFishRenderer
         {
             FishSpecies.Krill => KrillShapeImpl,
             FishSpecies.Jellyfish => JellyfishShapeImpl,
-            FishSpecies.Puffer => PufferShapeImpl,
             _ => GlassShape,
         };
         double scale = fish.RenderScale;
