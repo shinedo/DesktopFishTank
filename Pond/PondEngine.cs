@@ -190,7 +190,7 @@ public sealed class PondEngine
     /// <summary>设置鱼的数量，保留已存在的鱼，避免数量微调时整群重排。</summary>
     public void SetFishCount(int count)
     {
-        count = Math.Clamp(count, 0, 64);
+        count = Math.Clamp(count, 0, 16);
 
         while (_fish.Count > count)
         {
@@ -216,6 +216,7 @@ public sealed class PondEngine
         foreach (MechFish fish in _fish)
         {
             fish.SheenPhase = (fish.SheenPhase + dt / SheenCycleSeconds(fish.Species)) % 1.0;
+            UpdateWake(fish, dt, !fish.IsDragged);
 
             if (fish.IsDragged)
             {
@@ -373,17 +374,108 @@ public sealed class PondEngine
     }
 
     /// <summary>
-    /// 体侧扫光一个完整周期的秒数，其中扫过占 <c>FishShape</c> 里的 SheenDuty（四分之三），
-    /// 剩下四分之一是两次扫光之间的暗场停顿。磷虾体型小、视觉上最易显快，周期略长一点。
+    /// 推进一条鱼的气泡：已有的上浮、轻摆、变淡，游动时按间隔从尾部补新的。
+    /// 全部走固定容量的槽位，不产生每帧分配。
+    /// </summary>
+    private void UpdateWake(MechFish fish, double dt, bool moving)
+    {
+        for (int i = 0; i < fish.Wake.Length; i++)
+        {
+            ref WakeParticle particle = ref fish.Wake[i];
+            if (!particle.Alive)
+            {
+                continue;
+            }
+
+            particle.Age += dt;
+            if (particle.Age >= particle.Lifetime)
+            {
+                particle.Alive = false;
+                continue;
+            }
+
+            // 气泡上浮时受水流影响轻微左右摆，速度保持不变。
+            particle.Position = new Point(
+                particle.Position.X + (particle.VelocityX + Math.Sin(particle.Age * 5.0) * 4.0) * dt,
+                particle.Position.Y + particle.VelocityY * dt);
+        }
+
+        if (!moving || fish.Speed < 20.0)
+        {
+            return;
+        }
+
+        fish.BubbleTimer -= dt;
+        if (fish.BubbleTimer <= 0)
+        {
+            fish.BubbleTimer = 0.35 + _random.NextDouble() * 0.45;
+            SpawnBubble(fish);
+        }
+    }
+
+    private void SpawnBubble(MechFish fish)
+    {
+        int slot = TakeParticleSlot(fish);
+        if (slot < 0)
+        {
+            return;
+        }
+
+        double dx = Math.Cos(fish.Heading);
+        double dy = Math.Sin(fish.Heading);
+        double length = 58.0 * fish.RenderScale;
+        double side = (_random.NextDouble() - 0.5) * 14.0 * fish.RenderScale;
+
+        fish.Wake[slot] = new WakeParticle
+        {
+            Alive = true,
+            Position = new Point(
+                fish.Position.X - dx * length - dy * side,
+                fish.Position.Y - dy * length + dx * side),
+            Age = 0,
+            Lifetime = 1.30 + _random.NextDouble() * 0.70,
+            VelocityX = (_random.NextDouble() - 0.5) * 8.0,
+            VelocityY = -(12.0 + _random.NextDouble() * 8.0),
+            Scale = (2.0 + _random.NextDouble() * 1.6) * (0.7 + 0.3 * fish.RenderScale),
+        };
+    }
+
+    /// <summary>取一个空槽；池满时覆盖最老的一个，宁可提前消失也不额外分配。</summary>
+    private static int TakeParticleSlot(MechFish fish)
+    {
+        int oldest = 0;
+        double oldestRatio = -1;
+
+        for (int i = 0; i < fish.Wake.Length; i++)
+        {
+            if (!fish.Wake[i].Alive)
+            {
+                return i;
+            }
+
+            double ratio = fish.Wake[i].Age / fish.Wake[i].Lifetime;
+            if (ratio > oldestRatio)
+            {
+                oldestRatio = ratio;
+                oldest = i;
+            }
+        }
+
+        return oldest;
+    }
+
+    /// <summary>
+    /// 体侧扫光一个完整周期的秒数，其中扫过占 <c>FishShape</c> 里的 SheenDuty（五分之四），
+    /// 剩下五分之一是两次扫光之间的暗场停顿。磷虾体型小、视觉上最易显快，周期略长一点。
     /// </summary>
     private static double SheenCycleSeconds(FishSpecies species)
     {
         return species switch
         {
-            FishSpecies.Krill => 2.4,
-            FishSpecies.Jellyfish => 2.0,
-            FishSpecies.Puffer => 2.1,
-            _ => 2.1,
+            FishSpecies.Krill => 2.15,
+            FishSpecies.Jellyfish => 1.8,
+            FishSpecies.Puffer => 1.9,
+            _ => 1.9,
         };
     }
 

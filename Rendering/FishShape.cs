@@ -27,14 +27,14 @@ internal abstract class FishShape
     protected static readonly Brush BodySheenBrush = CreateBodySheenBrush();
 
     /// <summary>扫光占整个周期的比例，剩余部分留作暗场间隔。</summary>
-    private const double SheenDuty = 0.75;
+    private const double SheenDuty = 0.80;
 
     public abstract void Draw(DrawingContext dc, FishPalette palette, double phase, double speed, double sheenPhase);
 
     /// <summary>
     /// 在已经裁到身体轮廓的绘制上下文里，画一道从头部向尾部扫过的折射光带。
     /// 局部坐标头朝 +X，所以扫光从右往左走。各品种只需给出扫过范围和倾斜角。
-    /// <paramref name="sheenPhase"/> 在 0-1 间循环，后四分之一为暗场，让两次扫光之间留出停顿。
+    /// <paramref name="sheenPhase"/> 在 0-1 间循环，后五分之一为暗场，让两次扫光之间留出停顿。
     /// </summary>
     protected static void DrawBodySheen(
         DrawingContext dc,

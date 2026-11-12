@@ -36,6 +36,12 @@ public sealed class FishPalette
 
     public required Pen GlowCorePen { get; init; }
 
+    /// <summary>气泡外圈的淡出画笔，越旧越淡。</summary>
+    public required Pen[] BubblePens { get; init; }
+
+    /// <summary>气泡左上角的一点反光。</summary>
+    public required Brush BubbleHighlight { get; init; }
+
     public required Brush EyeRingFill { get; init; }
 
     public required Pen EyeRingPen { get; init; }
@@ -78,6 +84,8 @@ public sealed class FishPalette
             HaloBrush = Halo(accent, 0x38),
             GlowWidePen = Pen(accent, 0x40, 4.4),
             GlowCorePen = Pen(Blend(accent, Colors.White, 0.55), 0xC8, 1.35),
+            BubblePens = BuildFadePens(accent, new double[] { 1.0, 1.0, 1.0, 1.0 }, new byte[] { 0x18, 0x2A, 0x3E, 0x56 }),
+            BubbleHighlight = Solid(Colors.White, 0xA6),
             EyeRingFill = EyeIris(),
             EyeRingPen = Pen(Color.FromRgb(0x05, 0x10, 0x18), 0xC0, 0.9),
             EyeGlowBrush = Solid(accent, 0x22),
@@ -143,6 +151,23 @@ public sealed class FishPalette
         };
         pen.Freeze();
         return pen;
+    }
+
+    /// <summary>
+    /// 尾流用的分级画笔：透明度按年龄直接挑一支，
+    /// 不用逐段 PushOpacity——那会在软件渲染下反复开离屏表面。
+    /// </summary>
+    private static Pen[] BuildFadePens(Color accent, double[] widths, byte[] alphas)
+    {
+        Color color = Blend(accent, Colors.White, 0.5);
+        var pens = new Pen[alphas.Length];
+
+        for (int i = 0; i < alphas.Length; i++)
+        {
+            pens[i] = Pen(color, alphas[i], widths[i]);
+        }
+
+        return pens;
     }
 
     private static LinearGradientBrush NewGradient()

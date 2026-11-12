@@ -35,6 +35,9 @@ internal static class MechFishRenderer
             return;
         }
 
+        // 气泡用世界坐标绘制，先于鱼身，落在身体后面。
+        WakeEffect.DrawBubbles(dc, fish, palette);
+
         // 朝左游时做垂直镜像，避免鱼整体翻转成肚皮朝上。
         // 不再按远近压透明度：WPF 软件渲染下每个 PushOpacity 都要离屏合成一次，
         // 每条鱼两层分组会让绘制开销随鱼数线性增长。远近改由缩放表达。

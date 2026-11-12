@@ -56,7 +56,7 @@
                             Grid.Row="1"
                             Grid.ColumnSpan="2"
                             Minimum="1"
-                            Maximum="32"
+                            Maximum="16"
                             TickFrequency="1"
                             IsSnapToTickEnabled="True"
                             Margin="0,8,0,0" />

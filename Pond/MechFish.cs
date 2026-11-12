@@ -51,6 +51,15 @@ public sealed class MechFish
 
     public bool IsDragged { get; set; }
 
+    /// <summary>气泡的数量上限，超出时覆盖最老的一个。</summary>
+    public const int MaxWakeParticles = 4;
+
+    /// <summary>气泡池：引擎推进、渲染器绘制，定长复用，不做堆分配。</summary>
+    public WakeParticle[] Wake { get; } = new WakeParticle[MaxWakeParticles];
+
+    /// <summary>距下一次冒气泡的剩余秒数。</summary>
+    public double BubbleTimer { get; set; }
+
     /// <summary>绘制缩放的硬上限，由鱼塘统一设置，用来压住个别过大的鱼。</summary>
     public double MaxRenderScale { get; set; } = double.MaxValue;
 
