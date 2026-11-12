@@ -1,8 +1,8 @@
 using System;
 using System.Windows;
-using DesktopFish.Rendering;
+using DesktopFishTank.Rendering;
 
-namespace DesktopFish.Pond;
+namespace DesktopFishTank.Pond;
 
 /// <summary>
 /// 单条机械鱼的运动状态。只保存数据，绘制交给 <see cref="MechFishRenderer"/>。
@@ -33,9 +33,6 @@ public sealed class MechFish
     public double Depth { get; set; } = 1.0;
 
     public FishPalette Palette { get; set; } = FishPaletteCatalog.Default;
-
-    /// <summary>整体不透明度，由托盘里的透明度档位统一设置。</summary>
-    public double Opacity { get; set; } = 1.0;
 
     /// <summary>是否绘制鱼周围那层暗淡的荧光光晕。</summary>
     public bool ShowHalo { get; set; } = true;

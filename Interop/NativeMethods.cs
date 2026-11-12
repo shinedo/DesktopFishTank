@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace DesktopFish.Interop;
+namespace DesktopFishTank.Interop;
 
 /// <summary>
 /// 桌面鱼塘用到的 Win32 互操作。只保留实际使用的最小集合。

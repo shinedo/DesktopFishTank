@@ -2,10 +2,10 @@ using System;
 using System.IO;
 using System.Text.Json;
 
-namespace DesktopFish.Settings;
+namespace DesktopFishTank.Settings;
 
 /// <summary>
-/// 读写 %LOCALAPPDATA%\DesktopFish\settings.json。
+/// 读写 %LOCALAPPDATA%\DesktopFishTank\settings.json。
 /// 配置损坏或磁盘不可写时回退到默认值，不影响鱼塘启动。
 /// </summary>
 public static class SettingsStore
@@ -17,15 +17,22 @@ public static class SettingsStore
 
     private static string FolderPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "DesktopFish");
+        "DesktopFishTank");
 
     private static string FilePath => Path.Combine(FolderPath, "settings.json");
 
-    /// <summary>改名前的配置位置，只在首次启动时迁移一次。</summary>
-    private static string LegacyFilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "MechFishPond",
-        "settings.json");
+    /// <summary>历次改名前用过的配置位置，按由新到旧排列。</summary>
+    private static string[] LegacyFilePaths { get; } = new[]
+    {
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "DesktopFish",
+            "settings.json"),
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MechFishPond",
+            "settings.json"),
+    };
 
     public static AppSettings Load()
     {
@@ -54,13 +61,22 @@ public static class SettingsStore
     /// </summary>
     private static void MigrateLegacySettings()
     {
-        if (File.Exists(FilePath) || !File.Exists(LegacyFilePath))
+        if (File.Exists(FilePath))
         {
             return;
         }
 
-        Directory.CreateDirectory(FolderPath);
-        File.Copy(LegacyFilePath, FilePath, overwrite: false);
+        foreach (string legacyPath in LegacyFilePaths)
+        {
+            if (!File.Exists(legacyPath))
+            {
+                continue;
+            }
+
+            Directory.CreateDirectory(FolderPath);
+            File.Copy(legacyPath, FilePath, overwrite: false);
+            return;
+        }
     }
 
     public static void Save(AppSettings settings)

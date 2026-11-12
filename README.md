@@ -1,4 +1,4 @@
-# 机械鱼塘 DesktopFish
+# DesktopFishTank
 
 一个 Windows 桌面装饰工具：全屏透明、始终置顶、默认鼠标穿透的荧光玻璃鱼塘。
 
@@ -7,12 +7,12 @@
 - 铺满整个虚拟桌面（多显示器一起覆盖），始终位于所有窗口最上层
 - 默认鼠标穿透，不拦截任何点击；不在任务栏、不占 Alt+Tab
 - **荧光玻璃鱼**：半透明体壁、透出的骨骼与内脏、体侧荧光带，全部由 WPF 矢量程序化绘制，不使用贴图
-- 12 种荧光配色随机分配
+- 20 种荧光配色，可在鱼群设置里逐项勾选启用哪些
 - **吸引快捷键**：按住快捷键时所有鱼转向鼠标位置并加速游过去，默认按住 `Ctrl + Shift`
 - **交互快捷键**：按住时临时进入可交互状态，鼠标靠近会把鱼惊走，左键可拖拽鱼，默认按住 `Ctrl + Alt`
 - 两个快捷键都能在托盘菜单里改成任意组合（含「只按修饰键」的组合）
 - 鱼群整体游速较快，吸引时会明显加速冲向鼠标
-- 系统托盘菜单：显示/隐藏、鱼数量（4 / 8 / 14）、最大体型、透明度、周围荧光开关、帧率（20 / 30 / 60 FPS）、吸引快捷键、交互快捷键、退出
+- 系统托盘菜单：显示/隐藏、鱼群设置（数量、最大体型、透明度、周围荧光）、帧率（20 / 30 / 60 FPS）、吸引快捷键、交互快捷键、退出
 - 单实例运行，重复启动会直接退出
 - 配置自动保存，重启后沿用上次的体型、透明度、数量、帧率和快捷键
 
@@ -21,19 +21,19 @@
 发布版（需 .NET 9 Desktop Runtime）：
 
 ```
-publish\DesktopFish.exe
+publish\DesktopFishTank.exe
 ```
 
 开发运行：
 
 ```
-dotnet run --project DesktopFish.csproj
+dotnet run --project DesktopFishTank.csproj
 ```
 
 ## 构建发布
 
 ```
-dotnet publish DesktopFish.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
+dotnet publish DesktopFishTank.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
 ```
 
 ## 操作一览
@@ -64,10 +64,11 @@ dotnet publish DesktopFish.csproj -c Release -r win-x64 --self-contained false -
 
 | 菜单 | 作用 |
 | --- | --- |
-| 鱼的数量 | 4 / 8 / 14 条，增减时保留已有鱼的位置 |
-| 鱼的最大体型 | 小巧（≤0.8×）/ 标准（≤1.1×）/ 较大（≤1.4×）/ 不限制，立即生效 |
-| 鱼的透明度 | 40% / 60% / 80% / 100%，只影响整条鱼的整体不透明度 |
-| 鱼周围荧光 | 开关鱼体外那层暗淡的环境光晕；关闭后鱼自身的荧光带、鳍缘发光仍然保留 |
+| 鱼群设置… | 一个窗口里连续调节鱼的数量（1–32 条）、最大体型（0.5–3.0×）、透明度（20–100%），开关鱼周围荧光，并逐项勾选启用哪些配色（至少保留一种）；改动即时生效，关闭窗口时保存 |
+
+- 增减数量时保留已有鱼的位置，例如从 14 调到 15 只新增一条，不会整群重排。
+- 最大体型是绘制缩放的硬上限，滑块拉到最右显示「不限制」。
+- 关闭「鱼周围荧光」只去掉鱼体外那层环境光晕，鱼自身的荧光带、鳍缘发光仍然保留。
 
 ### 关于快捷键绑定
 
@@ -84,7 +85,7 @@ dotnet publish DesktopFish.csproj -c Release -r win-x64 --self-contained false -
 ## 配置文件
 
 ```
-%LOCALAPPDATA%\DesktopFish\settings.json
+%LOCALAPPDATA%\DesktopFishTank\settings.json
 ```
 
 字段：
@@ -92,9 +93,10 @@ dotnet publish DesktopFish.csproj -c Release -r win-x64 --self-contained false -
 | 字段 | 说明 |
 | --- | --- |
 | `FishCount` | 鱼的数量 |
-| `MaxFishScale` | 最大绘制缩放，`0.8` / `1.1` / `1.4` / `3.0`（3.0 表示不限制） |
-| `FishOpacity` | 整体不透明度，`0.4` / `0.6` / `0.8` / `1.0` |
+| `MaxFishScale` | 最大绘制缩放，`0.5`–`3.0` 连续可调（`3.0` 表示不限制） |
+| `FishOpacity` | 整体不透明度，`0.2`–`1.0` 连续可调 |
 | `ShowHalo` | 是否绘制鱼周围的环境光晕 |
+| `EnabledPalettes` | 启用的配色名列表；缺省或为空表示全部启用 |
 | `FrameRate` | 目标帧率 |
 | `AttractHotkey` | 吸引快捷键，`VirtualKey` 为 Win32 虚拟键码，`0` 表示未绑定或只按修饰键；默认 `Ctrl + Shift` |
 | `InteractHotkey` | 交互快捷键，结构同上；默认 `Ctrl + Alt`（`VirtualKey` 为 0） |
@@ -104,8 +106,13 @@ dotnet publish DesktopFish.csproj -c Release -r win-x64 --self-contained false -
 ## 性能
 
 透明全屏窗口走的是 WPF 的软件合成路径，开销与屏幕像素数成正比。实测环境
-（5120×1440、28 逻辑核心、8 条鱼、30 FPS）：整机 CPU 约 2%（折合单核约 0.6 核），
+（5120×1440、28 逻辑核心、16 条鱼、30 FPS）：整机 CPU 约 2.5%（折合单核约 0.7 核），
 工作集约 240 MB。
+
+鱼数从 4 增到 32 时，单核占用只增加约 5 个百分点：绘制成本主要来自全屏透明表面的
+合成，而不是单条鱼。此前每条鱼有两层 `PushOpacity`（光晕 + 鱼身），软件渲染下每个
+分组都要离屏合成一次，这才是鱼一多就卡的根因；现在整体透明度只在画布上开一层分组，
+100% 透明度时完全不开。
 
 如果觉得占用偏高，可在托盘菜单里切到「省电（20 FPS）」，或者临时隐藏鱼塘
 （隐藏后停止渲染）。全屏透明窗口本身无法启用硬件加速，这是 WPF
@@ -114,7 +121,7 @@ dotnet publish DesktopFish.csproj -c Release -r win-x64 --self-contained false -
 ## 目录结构
 
 ```
-DesktopFish/
+DesktopFishTank/
 ├─ App.xaml(.cs)              应用入口、单实例互斥
 ├─ MainWindow.xaml(.cs)       全屏置顶窗口、穿透/热键切换、帧循环、鼠标与吸引交互
 ├─ SettingsWindow.xaml(.cs)   快捷键绑定窗口
@@ -124,7 +131,7 @@ DesktopFish/
 │  └─ PondEngine.cs           鱼群巡游、边界转向、鼠标吸引与躲避
 ├─ Rendering/
 │  ├─ FishPalette.cs          荧光玻璃的冻结画刷与画笔
-│  ├─ FishPaletteCatalog.cs   12 套荧光配色
+│  ├─ FishPaletteCatalog.cs   20 套荧光配色
 │  ├─ FishShape.cs            造型基类与共用部件
 │  ├─ GlassFishShape.cs       荧光玻璃鱼的矢量造型
 │  └─ MechFishRenderer.cs     统一变换、光晕与逐帧绘制入口

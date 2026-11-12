@@ -1,0 +1,160 @@
+<Window x:Class="DesktopFishTank.PondSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="鱼群设置"
+        Width="480"
+        Height="600"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Topmost="True"
+        ShowInTaskbar="False"
+        Background="#0E141C"
+        Foreground="#DCE7F2"
+        FontFamily="Microsoft YaHei UI">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="鱼群设置"
+                   FontSize="17"
+                   FontWeight="SemiBold"
+                   Foreground="#EDF5FF" />
+        <TextBlock Grid.Row="1"
+                   Text="拖动滑块即时生效，点「完成」保存。"
+                   FontSize="12"
+                   Foreground="#7E93AA"
+                   Margin="0,6,0,16" />
+
+        <Border Grid.Row="2"
+                Background="#141D28"
+                BorderBrush="#24384D"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16"
+                VerticalAlignment="Top">
+            <StackPanel>
+                <Grid Margin="0,0,0,18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="数量" FontSize="13" />
+                    <TextBlock x:Name="CountValue"
+                               Grid.Column="1"
+                               FontSize="13"
+                               Foreground="#43F0FF" />
+                    <Slider x:Name="CountSlider"
+                            Grid.Row="1"
+                            Grid.ColumnSpan="2"
+                            Minimum="1"
+                            Maximum="32"
+                            TickFrequency="1"
+                            IsSnapToTickEnabled="True"
+                            Margin="0,8,0,0" />
+                </Grid>
+
+                <Grid Margin="0,0,0,18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="最大体型" FontSize="13" />
+                    <TextBlock x:Name="SizeValue"
+                               Grid.Column="1"
+                               FontSize="13"
+                               Foreground="#43F0FF" />
+                    <Slider x:Name="SizeSlider"
+                            Grid.Row="1"
+                            Grid.ColumnSpan="2"
+                            Minimum="0.5"
+                            Maximum="3.0"
+                            TickFrequency="0.05"
+                            IsSnapToTickEnabled="True"
+                            Margin="0,8,0,0" />
+                </Grid>
+
+                <Grid Margin="0,0,0,18">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="透明度" FontSize="13" />
+                    <TextBlock x:Name="OpacityValue"
+                               Grid.Column="1"
+                               FontSize="13"
+                               Foreground="#43F0FF" />
+                    <Slider x:Name="OpacitySlider"
+                            Grid.Row="1"
+                            Grid.ColumnSpan="2"
+                            Minimum="20"
+                            Maximum="100"
+                            TickFrequency="5"
+                            IsSnapToTickEnabled="True"
+                            Margin="0,8,0,0" />
+                </Grid>
+
+                <CheckBox x:Name="HaloCheck"
+                          Content="周围荧光"
+                          FontSize="13"
+                          Foreground="#DCE7F2"
+                          Checked="OnHaloChanged"
+                          Unchecked="OnHaloChanged" />
+
+                <Grid Margin="0,20,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="荧光配色" FontSize="13" />
+                        <TextBlock Text="取消勾选的配色不再出现，至少保留一种"
+                                   FontSize="11"
+                                   Foreground="#7E93AA"
+                                   Margin="0,3,0,0" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            Content="全选"
+                            FontSize="11"
+                            Padding="10,3"
+                            VerticalAlignment="Top"
+                            Click="OnSelectAllClick" />
+                </Grid>
+
+                <WrapPanel x:Name="PalettePanel" />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="3"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,16,0,0">
+            <Button Content="恢复默认"
+                    Width="96"
+                    Height="32"
+                    Margin="0,0,8,0"
+                    Click="OnResetClick" />
+            <Button Content="完成"
+                    Width="76"
+                    Height="32"
+                    IsDefault="True"
+                    Click="OnDoneClick" />
+        </StackPanel>
+    </Grid>
+</Window>

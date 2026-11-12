@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Media;
 
-namespace DesktopFish.Rendering;
+namespace DesktopFishTank.Rendering;
 
 /// <summary>
 /// 一条荧光玻璃鱼用到的全部画刷与画笔。所有 Freezable 都在创建后冻结，
@@ -11,6 +11,15 @@ namespace DesktopFish.Rendering;
 /// </summary>
 public sealed class FishPalette
 {
+    /// <summary>配色的显示名，设置窗口与配置持久化都用它。</summary>
+    public required string Name { get; init; }
+
+    /// <summary>荧光带的颜色，设置窗口里的色块用。</summary>
+    public required Color Accent { get; init; }
+
+    /// <summary>体后暖斑与内脏的颜色。</summary>
+    public required Color Secondary { get; init; }
+
     public required Brush BodyFill { get; init; }
 
     public required Brush FinFill { get; init; }
@@ -53,10 +62,13 @@ public sealed class FishPalette
     /// <summary>背脊与头部的镜面高光。</summary>
     public required Pen HighlightPen { get; init; }
 
-    internal static FishPalette Create(Color accent, Color secondary)
+    internal static FishPalette Create(string name, Color accent, Color secondary)
     {
         return new FishPalette
         {
+            Name = name,
+            Accent = accent,
+            Secondary = secondary,
             BodyFill = BuildBodyBrush(accent),
             FinFill = BuildFinBrush(accent),
             // 亮边上下厚、侧中薄，靠菲涅尔反射读出玻璃的圆度。
@@ -66,10 +78,11 @@ public sealed class FishPalette
             HaloBrush = Halo(accent, 0x38),
             GlowWidePen = Pen(accent, 0x40, 4.4),
             GlowCorePen = Pen(Blend(accent, Colors.White, 0.55), 0xC8, 1.35),
-            EyeRingFill = Solid(Color.FromRgb(0x08, 0x14, 0x1C), 0xE8),
-            EyeRingPen = Pen(Color.FromRgb(0xE4, 0xF6, 0xFF), 0xD0, 1.1),
-            EyeGlowBrush = Solid(accent, 0x50),
-            EyeCoreBrush = Solid(Blend(accent, Colors.White, 0.4), 0xFF),
+            EyeRingFill = EyeIris(),
+            EyeRingPen = Pen(Color.FromRgb(0x05, 0x10, 0x18), 0xC0, 0.9),
+            EyeGlowBrush = Solid(accent, 0x22),
+            // 真实鱼的瞳孔接近纯黑，发光是体表的事，不落在眼睛里。
+            EyeCoreBrush = Solid(Color.FromRgb(0x02, 0x05, 0x08), 0xFF),
             AnatomyPen = Pen(Color.FromRgb(0xE8, 0xF4, 0xF4), 0x32, 0.75),
             OrganBrush = Patch(Blend(secondary, accent, 0.2), 0x3C),
             FluoroOuterBrush = Solid(accent, 0x16),
@@ -175,6 +188,28 @@ public sealed class FishPalette
 
         halo.Freeze();
         return halo;
+    }
+
+    /// <summary>
+    /// 虹膜：中心偏上方提亮，外缘压暗，像一颗湿润的玻璃球。
+    /// 瞳孔会盖住中心区域，露出来的是中间那圈银蓝金属色。
+    /// </summary>
+    private static RadialGradientBrush EyeIris()
+    {
+        var iris = new RadialGradientBrush
+        {
+            GradientOrigin = new Point(0.42, 0.36),
+            Center = new Point(0.5, 0.5),
+            RadiusX = 0.55,
+            RadiusY = 0.55,
+        };
+        iris.GradientStops.Add(new GradientStop(Color.FromArgb(0x00, 0x14, 0x30, 0x3C), 0.00));
+        iris.GradientStops.Add(new GradientStop(Color.FromArgb(0xFF, 0x2A, 0x54, 0x66), 0.42));
+        iris.GradientStops.Add(new GradientStop(Color.FromArgb(0xFF, 0xAE, 0xDD, 0xEF), 0.62));
+        iris.GradientStops.Add(new GradientStop(Color.FromArgb(0xFF, 0x74, 0xA2, 0xB8), 0.86));
+        iris.GradientStops.Add(new GradientStop(Color.FromArgb(0xFF, 0x06, 0x12, 0x1A), 1.00));
+        iris.Freeze();
+        return iris;
     }
 
     /// <summary>软斑：中心不透明、边缘渐隐的径向渐变，用来表现内脏与尾部暖斑。</summary>

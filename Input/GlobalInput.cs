@@ -1,6 +1,6 @@
-using DesktopFish.Interop;
+using DesktopFishTank.Interop;
 
-namespace DesktopFish.Input;
+namespace DesktopFishTank.Input;
 
 /// <summary>
 /// 全局按键状态查询。用 GetAsyncKeyState 轮询，不注册系统热键，

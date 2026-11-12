@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Media;
 
-namespace DesktopFish.Rendering;
+namespace DesktopFishTank.Rendering;
 
 /// <summary>
 /// 一种鱼的矢量绘制逻辑。位置、朝向、镜像、缩放与透明度由 <see cref="MechFishRenderer"/>

@@ -1,8 +1,8 @@
 using System.Windows;
 using System.Windows.Input;
-using DesktopFish.Input;
+using DesktopFishTank.Input;
 
-namespace DesktopFish;
+namespace DesktopFishTank;
 
 /// <summary>
 /// 快捷键设置窗口。点击「重新绑定」后捕获下一次非修饰键按下，

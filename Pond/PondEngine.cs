@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Windows;
-using DesktopFish.Rendering;
+using DesktopFishTank.Rendering;
 
-namespace DesktopFish.Pond;
+namespace DesktopFishTank.Pond;
 
 /// <summary>
 /// 鱼群运动模拟：随机漫步 + 边界转向 + 交互模式下的避让。
@@ -27,11 +27,13 @@ public sealed class PondEngine
 
     private readonly Random _random = new();
     private readonly List<MechFish> _fish = new();
-    private Rect _bounds = new(0, 0, 1024, 768);
-    private IReadOnlyList<FishPalette> _palettes = FishPaletteCatalog.All;
 
-    /// <summary>所有鱼的整体不透明度。</summary>
-    private double _fishOpacity = 1.0;
+    /// <summary>当前允许出现的配色下标；至少保留一项。</summary>
+    private readonly List<int> _enabledPalettes = FishPaletteCatalog.AllIndices();
+    private Rect _bounds = new(0, 0, 1024, 768);
+
+    /// <summary>所有鱼的整体不透明度，由绘制表面统一套一次，避免逐鱼开离屏分组。</summary>
+    public double FishOpacity { get; private set; } = 1.0;
 
     /// <summary>是否绘制鱼周围的光晕。</summary>
     private bool _showHalo = true;
@@ -55,15 +57,44 @@ public sealed class PondEngine
 
     public MechFish? DraggedFish { get; set; }
 
-    /// <summary>设置所有鱼的整体不透明度，立即作用到已在游动的鱼。</summary>
-    public void SetFishOpacity(double opacity)
+    /// <summary>
+    /// 设置允许出现的配色。已经在用被关掉配色的鱼会立刻换成其他可用配色，
+    /// 避免关闭开关后色群仍然残留。传入空集合时忽略，保证至少有一色。
+    /// </summary>
+    public void SetEnabledPalettes(IReadOnlyList<int> indices)
     {
-        _fishOpacity = Math.Clamp(opacity, 0.15, 1.0);
+        if (indices.Count == 0)
+        {
+            return;
+        }
+
+        _enabledPalettes.Clear();
+        foreach (int index in indices)
+        {
+            if (index >= 0 && index < FishPaletteCatalog.All.Count && !_enabledPalettes.Contains(index))
+            {
+                _enabledPalettes.Add(index);
+            }
+        }
+
+        if (_enabledPalettes.Count == 0)
+        {
+            _enabledPalettes.Add(0);
+        }
 
         foreach (MechFish fish in _fish)
         {
-            fish.Opacity = _fishOpacity;
+            if (!IsPaletteEnabled(fish.Palette))
+            {
+                fish.Palette = PickPalette();
+            }
         }
+    }
+
+    /// <summary>设置所有鱼的整体不透明度，立即作用到已在游动的鱼。</summary>
+    public void SetFishOpacity(double opacity)
+    {
+        FishOpacity = Math.Clamp(opacity, 0.15, 1.0);
     }
 
     /// <summary>开关鱼周围那层暗淡的荧光光晕。</summary>
@@ -187,11 +218,29 @@ public sealed class PondEngine
         return best;
     }
 
+    private FishPalette PickPalette()
+    {
+        return FishPaletteCatalog.All[_enabledPalettes[_random.Next(_enabledPalettes.Count)]];
+    }
+
+    private bool IsPaletteEnabled(FishPalette palette)
+    {
+        foreach (int index in _enabledPalettes)
+        {
+            if (ReferenceEquals(FishPaletteCatalog.All[index], palette))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private MechFish CreateFish()
     {
         var fish = new MechFish
         {
-            Palette = _palettes[_random.Next(_palettes.Count)],
+            Palette = PickPalette(),
             OrbitDirection = _random.Next(2) == 0 ? 1 : -1,
             Depth = 0.70 + _random.NextDouble() * 0.30,
             Heading = _random.NextDouble() * Math.PI * 2,
@@ -199,7 +248,6 @@ public sealed class PondEngine
             Phase = _random.NextDouble() * Math.PI * 2,
             Size = 0.90 + _random.NextDouble() * 0.75,
             MaxRenderScale = _maxRenderScale,
-            Opacity = _fishOpacity,
             ShowHalo = _showHalo,
             Position = new Point(
                 _random.NextDouble() * Math.Max(1, _bounds.Width),

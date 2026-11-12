@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Windows;
 
-namespace DesktopFish;
+namespace DesktopFishTank;
 
 public partial class App : Application
 {
@@ -12,7 +12,7 @@ public partial class App : Application
         base.OnStartup(e);
 
         // 单个鱼塘实例即可，重复启动直接退出，避免两层置顶窗口叠加。
-        _singleInstanceMutex = new Mutex(true, @"Local\DesktopFish.SingleInstance", out bool createdNew);
+        _singleInstanceMutex = new Mutex(true, @"Local\DesktopFishTank.SingleInstance", out bool createdNew);
         if (!createdNew)
         {
             Shutdown();

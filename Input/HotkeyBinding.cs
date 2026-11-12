@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace DesktopFish.Input;
+namespace DesktopFishTank.Input;
 
 /// <summary>
 /// 一个按住型快捷键组合：修饰键 + 可选主键。

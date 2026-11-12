@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
@@ -6,14 +7,14 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
-using DesktopFish.Input;
-using DesktopFish.Interop;
-using DesktopFish.Pond;
-using DesktopFish.Rendering;
-using DesktopFish.Settings;
-using DesktopFish.Tray;
+using DesktopFishTank.Input;
+using DesktopFishTank.Interop;
+using DesktopFishTank.Pond;
+using DesktopFishTank.Rendering;
+using DesktopFishTank.Settings;
+using DesktopFishTank.Tray;
 
-namespace DesktopFish;
+namespace DesktopFishTank;
 
 /// <summary>
 /// 全屏透明置顶层。默认鼠标穿透，按住用户绑定的交互快捷键（默认 Ctrl + Alt）时临时可交互，
@@ -151,6 +152,7 @@ public partial class MainWindow : Window
             Pond.Engine.SetMaxRenderScale(_settings.ResolveMaxFishScale());
             Pond.Engine.SetFishOpacity(_settings.ResolveFishOpacity());
             Pond.Engine.SetShowHalo(_settings.ShowHalo);
+            Pond.Engine.SetEnabledPalettes(ResolveEnabledPaletteIndices(_settings.EnabledPalettes));
             Pond.Engine.SetFishCount(_settings.FishCount);
             _frameInterval = 1.0 / Math.Clamp(_settings.FrameRate, 5, 120);
 
@@ -162,8 +164,6 @@ public partial class MainWindow : Window
         FitToVirtualScreen();
         _lastFrameTime = _clock.Elapsed.TotalSeconds;
         UpdatePondBounds();
-
-        _tray?.ShowWelcome();
     }
 
     private void CreateTray()
@@ -175,20 +175,13 @@ public partial class MainWindow : Window
 
         _tray = new TrayIconController();
         _tray.SyncState(
-            _settings.FishCount,
             _settings.FrameRate,
-            _settings.ResolveMaxFishScale(),
-            _settings.ResolveFishOpacity(),
-            _settings.ShowHalo,
             _settings.ResolveAttractHotkey().DisplayName,
             _settings.ResolveInteractHotkey().DisplayName);
 
         _tray.ToggleVisibilityRequested += TogglePondVisibility;
-        _tray.FishCountSelected += OnFishCountSelected;
         _tray.FrameRateSelected += OnFrameRateSelected;
-        _tray.FishSizeLimitSelected += OnFishSizeLimitSelected;
-        _tray.FishOpacitySelected += OnFishOpacitySelected;
-        _tray.HaloToggled += OnHaloToggled;
+        _tray.PondSettingsRequested += OpenPondSettings;
         _tray.AttractHotkeySettingsRequested += OpenAttractHotkeySettings;
         _tray.InteractHotkeySettingsRequested += OpenInteractHotkeySettings;
         _tray.ExitRequested += ExitApplication;
@@ -400,13 +393,6 @@ public partial class MainWindow : Window
         _tray?.SetVisibleState(visible);
     }
 
-    private void OnFishCountSelected(int count)
-    {
-        Pond.Engine.SetFishCount(count);
-        _settings.FishCount = count;
-        SettingsStore.Save(_settings);
-    }
-
     private void OnFrameRateSelected(int fps)
     {
         _frameInterval = 1.0 / Math.Clamp(fps, 5, 120);
@@ -414,28 +400,73 @@ public partial class MainWindow : Window
         SettingsStore.Save(_settings);
     }
 
-    private void OnFishSizeLimitSelected(double limit)
+    /// <summary>打开鱼群设置。滑块拖动时即时生效，关闭窗口时统一落盘。</summary>
+    private void OpenPondSettings()
     {
-        Pond.Engine.SetMaxRenderScale(limit);
-        _settings.MaxFishScale = limit;
-        SettingsStore.Save(_settings);
+        // 设置窗口和鱼塘都是 Topmost，暂停主窗口的置顶重申，避免设置窗口被压到后面。
+        _topmostTimer.Stop();
+
+        try
+        {
+            var window = new PondSettingsWindow(
+                _settings.FishCount,
+                _settings.ResolveMaxFishScale(),
+                _settings.ResolveFishOpacity(),
+                _settings.ShowHalo,
+                _settings.EnabledPalettes)
+            {
+                Topmost = true,
+            };
+
+            window.Changed += OnPondSettingsChanged;
+            window.ShowDialog();
+            SettingsStore.Save(_settings);
+        }
+        finally
+        {
+            if (_isPondVisible)
+            {
+                _topmostTimer.Start();
+            }
+        }
+    }
+
+    private void OnPondSettingsChanged(PondSettingsValues values)
+    {
+        Pond.Engine.SetFishCount(values.FishCount);
+        Pond.Engine.SetMaxRenderScale(values.MaxRenderScale);
+        Pond.Engine.SetFishOpacity(values.Opacity);
+        Pond.Engine.SetShowHalo(values.ShowHalo);
+        Pond.Engine.SetEnabledPalettes(ResolveEnabledPaletteIndices(values.EnabledPalettes));
+
+        _settings.FishCount = values.FishCount;
+        _settings.MaxFishScale = values.MaxRenderScale;
+        _settings.FishOpacity = values.Opacity;
+        _settings.ShowHalo = values.ShowHalo;
+        _settings.EnabledPalettes = new List<string>(values.EnabledPalettes);
+
         Pond.InvalidateVisual();
     }
 
-    private void OnFishOpacitySelected(double opacity)
+    /// <summary>把配置里的配色名换算成下标；名字失效或为空时回退到全部启用。</summary>
+    private static List<int> ResolveEnabledPaletteIndices(IReadOnlyList<string>? names)
     {
-        Pond.Engine.SetFishOpacity(opacity);
-        _settings.FishOpacity = opacity;
-        SettingsStore.Save(_settings);
-        Pond.InvalidateVisual();
-    }
+        if (names == null || names.Count == 0)
+        {
+            return FishPaletteCatalog.AllIndices();
+        }
 
-    private void OnHaloToggled(bool show)
-    {
-        Pond.Engine.SetShowHalo(show);
-        _settings.ShowHalo = show;
-        SettingsStore.Save(_settings);
-        Pond.InvalidateVisual();
+        var indices = new List<int>();
+        foreach (string name in names)
+        {
+            int index = FishPaletteCatalog.IndexOfName(name);
+            if (index >= 0)
+            {
+                indices.Add(index);
+            }
+        }
+
+        return indices.Count > 0 ? indices : FishPaletteCatalog.AllIndices();
     }
 
     private void OpenAttractHotkeySettings()

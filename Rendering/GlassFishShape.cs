@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Media;
 
-namespace DesktopFish.Rendering;
+namespace DesktopFishTank.Rendering;
 
 /// <summary>
 /// 荧光玻璃鱼：半透明鱼体、透出的骨骼与内脏、体侧荧光带。
@@ -161,6 +161,19 @@ internal sealed class GlassFishShape : FishShape
     private static readonly Brush HeadWash =
         new SolidColorBrush(Color.FromArgb(0x1E, 0xDF, 0xF4, 0xFF));
 
+    /// <summary>眼窝阴影：把眼球按进头里，而不是让它浮在体表。</summary>
+    private static readonly Brush EyeSocketShade = CreateEyeSocket();
+
+    /// <summary>眼睛的两点高光，静态复用，避免每帧、每条鱼新建画刷。</summary>
+    private static readonly Brush EyeHighlight = FrozenSolid(Color.FromArgb(0xDC, 0xFF, 0xFF, 0xFF));
+
+    private static readonly Brush EyeHighlightSoft = FrozenSolid(Color.FromArgb(0x70, 0xFF, 0xFF, 0xFF));
+
+    /// <summary>尾鳍几何缓存：48 档相位 × 4 档摆幅，按需构建并冻结。</summary>
+    private const int TailPhaseSteps = 48;
+    private const int TailAmplitudeSteps = 4;
+    private static readonly Geometry?[] TailCache = new Geometry?[TailPhaseSteps * TailAmplitudeSteps];
+
     /// <summary>扫过体侧的柔光带，随相位横向移动，模拟玻璃折射的光泽。</summary>
     private static readonly Brush SheenBrush = CreateSheen();
 
@@ -225,8 +238,24 @@ internal sealed class GlassFishShape : FishShape
 
         PaintSwayFin(dc, palette, PectoralFin, palette.FinLinePen, pectoralSway, 30, 5);
 
-        DrawEye(dc, palette, new Point(37, -3.6), 9.0, 5.2, 2.6);
-        dc.DrawEllipse(Brushes.White, null, new Point(38.2, -4.7), 1.05, 1.05);
+        var eyeCenter = new Point(37, -3.6);
+        dc.DrawEllipse(EyeSocketShade, null, new Point(36.6, -3.0), 7.6, 7.0);
+        DrawEye(dc, palette, eyeCenter, 7.0, 4.6, 2.4);
+
+        // 主高光偏左上，副高光在对角，玻璃球的湿润感来自这两个点。
+        dc.DrawEllipse(
+            EyeHighlight,
+            null,
+            new Point(eyeCenter.X + 0.9, eyeCenter.Y - 1.5),
+            0.95,
+            0.95);
+        dc.DrawEllipse(
+            EyeHighlightSoft,
+            null,
+            new Point(eyeCenter.X - 1.1, eyeCenter.Y + 0.9),
+            0.42,
+            0.42);
+
         dc.DrawGeometry(null, palette.SeamPen, Mouth);
     }
 
@@ -272,8 +301,39 @@ internal sealed class GlassFishShape : FishShape
     /// <summary>叉形尾鳍：透明薄鳍，根部带体色，边缘发荧光，鳍条随游姿摆动。</summary>
     private static void DrawTail(DrawingContext dc, FishPalette palette, double phase, double speed)
     {
+        // 尾鳍形状只由相位和摆幅决定。按 48 档相位 × 4 档摆幅缓存，
+        // 避免每条鱼每帧都重建 StreamGeometry；30 FPS 下档位小于一帧的相位步长，
+        // 看不出阶梯感，但能把每帧的几何分配从「鱼数」降到 0。
         double vigor = Math.Clamp(0.55 + speed / 220.0, 0.55, 1.25);
-        double amplitude = 6.5 * vigor;
+        int amplitudeBucket = Math.Clamp(
+            (int)Math.Round((vigor - 0.55) / 0.7 * (TailAmplitudeSteps - 1)),
+            0,
+            TailAmplitudeSteps - 1);
+
+        double normalized = phase % (Math.PI * 2);
+        if (normalized < 0)
+        {
+            normalized += Math.PI * 2;
+        }
+
+        int phaseBucket = (int)(normalized / (Math.PI * 2) * TailPhaseSteps) % TailPhaseSteps;
+        int cacheIndex = amplitudeBucket * TailPhaseSteps + phaseBucket;
+
+        Geometry geometry = TailCache[cacheIndex] ??= BuildTail(
+            (phaseBucket + 0.5) / TailPhaseSteps * Math.PI * 2,
+            6.5 * (0.55 + amplitudeBucket / (double)(TailAmplitudeSteps - 1) * 0.7));
+
+        dc.PushOpacity(0.28);
+        dc.DrawGeometry(null, palette.GlowWidePen, geometry);
+        dc.Pop();
+
+        // 尾鳍只保留膜的渐变与轮廓，不画鳍条线——透明鱼尾是一整片薄纱，
+        // 加线条会立刻读成“线框”，失掉玻璃的通透感。
+        PaintFin(dc, palette, geometry, palette.RimPen);
+    }
+
+    private static Geometry BuildTail(double phase, double amplitude)
+    {
         double WaveAt(double t) => Math.Sin(phase - t * 1.7) * amplitude * (0.25 + t * 1.15);
 
         const double rootX = -43.5;
@@ -310,14 +370,7 @@ internal sealed class GlassFishShape : FishShape
         }
 
         geometry.Freeze();
-
-        dc.PushOpacity(0.28);
-        dc.DrawGeometry(null, palette.GlowWidePen, geometry);
-        dc.Pop();
-
-        // 尾鳍只保留膜的渐变与轮廓，不画鳍条线——透明鱼尾是一整片薄纱，
-        // 加线条会立刻读成“线框”，失掉玻璃的通透感。
-        PaintFin(dc, palette, geometry, palette.RimPen);
+        return geometry;
     }
 
     private static Geometry BuildStripe(double half)
@@ -339,6 +392,30 @@ internal sealed class GlassFishShape : FishShape
                 true,
                 true);
         });
+    }
+
+    private static Brush FrozenSolid(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
+    }
+
+    /// <summary>眼窝：中心略暗、边缘透明，避免出现一圈硬边。</summary>
+    private static Brush CreateEyeSocket()
+    {
+        var shade = new RadialGradientBrush
+        {
+            GradientOrigin = new Point(0.5, 0.5),
+            Center = new Point(0.5, 0.5),
+            RadiusX = 0.5,
+            RadiusY = 0.5,
+        };
+        shade.GradientStops.Add(new GradientStop(Color.FromArgb(0x30, 0x04, 0x0C, 0x14), 0.00));
+        shade.GradientStops.Add(new GradientStop(Color.FromArgb(0x18, 0x04, 0x0C, 0x14), 0.55));
+        shade.GradientStops.Add(new GradientStop(Color.FromArgb(0x00, 0x04, 0x0C, 0x14), 1.00));
+        shade.Freeze();
+        return shade;
     }
 
     /// <summary>竖直方向的单端渐变，用来给体壁压一层柔和的亮部或暗部。</summary>

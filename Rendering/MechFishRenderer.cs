@@ -1,9 +1,9 @@
 using System;
 using System.Windows;
 using System.Windows.Media;
-using DesktopFish.Pond;
+using DesktopFishTank.Pond;
 
-namespace DesktopFish.Rendering;
+namespace DesktopFishTank.Rendering;
 
 /// <summary>
 /// 把一条 <see cref="MechFish"/> 画到 DrawingContext。
@@ -25,13 +25,9 @@ internal static class MechFishRenderer
             return;
         }
 
-        double depthRatio = (fish.Depth - 0.66) / 0.34;
-
-        // 远处至少保留 62% 不透明度：形体靠亮边和发光带支撑，压太暗就看不见了。
-        double depthOpacity = Math.Clamp(0.62 + 0.38 * depthRatio, 0.62, 1.0);
-        double fishOpacity = depthOpacity * fish.Opacity;
-
         // 朝左游时做垂直镜像，避免鱼整体翻转成肚皮朝上。
+        // 不再按远近压透明度：WPF 软件渲染下每个 PushOpacity 都要离屏合成一次，
+        // 每条鱼两层分组会让绘制开销随鱼数线性增长。远近改由缩放表达。
         bool mirror = Math.Cos(fish.Heading) < 0;
 
         dc.PushTransform(new TranslateTransform(fish.Position.X, fish.Position.Y));
@@ -48,23 +44,17 @@ internal static class MechFishRenderer
         transformDepth++;
 
         // 水下光晕：宽而低的径向渐变，让鱼在深色桌面上有“发光体”感。
-        // 它不跟随“鱼的透明度”等比变淡——否则调到 40% 时整圈光晕会直接消失；
-        // 这里只保留一部分衰减，让光晕始终看得见，又不会盖过变透的鱼身。
         if (fish.ShowHalo)
         {
-            dc.PushOpacity(depthOpacity * (0.45 + 0.55 * fish.Opacity));
             dc.DrawEllipse(
                 palette.HaloBrush,
                 null,
                 new Point(2, 0),
                 Shape.HaloRadiusX,
                 Shape.HaloRadiusY);
-            dc.Pop();
         }
 
-        dc.PushOpacity(fishOpacity);
         Shape.Draw(dc, palette, fish.Phase, fish.Speed);
-        dc.Pop();
 
         for (int i = 0; i < transformDepth; i++)
         {
