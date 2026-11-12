@@ -1,0 +1,23 @@
+<Window x:Class="DesktopFish.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:DesktopFish.Controls"
+        Title="DesktopFish"
+        Width="1024"
+        Height="768"
+        Left="0"
+        Top="0"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="True"
+        ResizeMode="NoResize"
+        Focusable="False"
+        UseLayoutRounding="False"
+        SnapsToDevicePixels="False">
+    <Grid Background="Transparent">
+        <controls:PondCanvas x:Name="Pond" />
+    </Grid>
+</Window>
