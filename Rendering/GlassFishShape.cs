@@ -65,27 +65,27 @@ internal sealed class GlassFishShape : FishShape
     private static readonly Geometry AnalFin = Build(ctx =>
     {
         ctx.BeginFigure(new Point(-14, 14.2), true, true);
-        ctx.BezierTo(new Point(-22, 18.4), new Point(-31, 22.0), new Point(-40, 24.0), true, true);
-        ctx.QuadraticBezierTo(new Point(-37, 16.0), new Point(-33, 7.4), true, true);
+        ctx.BezierTo(new Point(-19, 16.6), new Point(-25, 18.3), new Point(-31.5, 18.6), true, true);
+        ctx.QuadraticBezierTo(new Point(-30, 14.5), new Point(-27, 10.5), true, true);
     });
 
     private static readonly Geometry AnalFinEdge = Build(ctx =>
     {
         ctx.BeginFigure(new Point(-14, 14.2), false, false);
-        ctx.BezierTo(new Point(-22, 18.4), new Point(-31, 22.0), new Point(-40, 24.0), true, false);
-        ctx.QuadraticBezierTo(new Point(-37, 16.0), new Point(-33, 7.4), true, false);
+        ctx.BezierTo(new Point(-19, 16.6), new Point(-25, 18.3), new Point(-31.5, 18.6), true, false);
+        ctx.QuadraticBezierTo(new Point(-30, 14.5), new Point(-27, 10.5), true, false);
     });
 
     private static readonly Geometry AnalFinRays = Build(ctx =>
     {
         ctx.BeginFigure(new Point(-18, 14.0), false, false);
-        ctx.LineTo(new Point(-28, 19.0), true, false);
+        ctx.LineTo(new Point(-24.5, 16.2), true, false);
 
         ctx.BeginFigure(new Point(-21, 13.6), false, false);
-        ctx.LineTo(new Point(-31, 20.2), true, false);
+        ctx.LineTo(new Point(-27, 17.1), true, false);
 
         ctx.BeginFigure(new Point(-24, 13.0), false, false);
-        ctx.LineTo(new Point(-35, 21.8), true, false);
+        ctx.LineTo(new Point(-29.5, 17.7), true, false);
     });
 
     private static readonly Geometry PelvicFin = Build(ctx =>
@@ -223,12 +223,15 @@ internal sealed class GlassFishShape : FishShape
         // 背鳍、臀鳍只绕根部摆 2° 左右：根部始终贴着身体，只有鳍尖轻轻起伏。
         double dorsalSway = Math.Sin(phase + 1.1) * 2.2;
         double analSway = Math.Sin(phase + 0.7) * 1.8;
+        double pelvicSway = Math.Sin(phase + 1.9) * 5.0;
 
         DrawTail(dc, palette, phase, speed);
 
         DrawFin(dc, palette, DorsalFin, DorsalFinEdge, DorsalFinRays, -dorsalSway, 15, -16.2);
         DrawFin(dc, palette, AnalFin, AnalFinEdge, AnalFinRays, analSway, -14, 14.2);
-        PaintFin(dc, palette, PelvicFin, palette.FinLinePen);
+
+        // 腹鳍绕根部轻摆，和背鳍、臀鳍一样只动鳍尖，根部始终贴着腹部。
+        PaintSwayFin(dc, palette, PelvicFin, palette.FinLinePen, pelvicSway, -4, 13.8);
 
         // 身体本身几乎不着色，形体靠亮边与体内结构读出来。
         PaintBody(dc, palette, Body);
